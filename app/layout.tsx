@@ -55,7 +55,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0B0C0E',
+  themeColor: '#05080B',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
@@ -100,6 +100,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru" className={`${inter.variable} ${oswald.variable}`}>
       <head>
+        {/* Помечаем, что JS доступен, — только тогда включается скрытое
+            состояние появления по прокрутке. Без JS контент виден сразу. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "document.documentElement.classList.add('js')",
+          }}
+        />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <script
           type="application/ld+json"

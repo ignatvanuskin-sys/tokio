@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import SectionLink from '@/components/site/SectionLink';
 import { Menu, Phone, X } from 'lucide-react';
 import { BUSINESS } from '@/content/business';
+import Logo from '@/components/site/Logo';
 import { cn } from '@/lib/cn';
 import BookButton from '@/components/booking/BookButton';
 
@@ -43,14 +43,7 @@ export default function Header() {
       )}
     >
       <div className={cn('container-x flex items-center justify-between gap-3', compact ? 'h-16' : 'h-[72px]')}>
-        <Link href="/" className="flex min-h-[44px] items-center gap-2.5" aria-label="Токио — на главную">
-          <span className="font-[family-name:var(--font-display)] text-[26px] font-semibold uppercase leading-none tracking-[0.06em]">
-            Токио
-          </span>
-          <span className="mt-0.5 hidden text-[11px] uppercase tracking-[0.2em] text-[var(--color-muted)] sm:inline">
-            {BUSINESS.kind}
-          </span>
-        </Link>
+        <Logo size={40} />
 
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Основная навигация">
           {NAV.map((item) => (

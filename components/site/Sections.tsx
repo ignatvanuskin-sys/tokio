@@ -6,6 +6,7 @@ import { FEATURED_MIN_RATING, REVIEWS, REVIEWS_AS_OF, REVIEWS_SOURCE_URL } from 
 import { FAQ } from '@/content/faq';
 import { ratingsWord, reviewsWord, humanDate, humanDuration } from '@/lib/format';
 import Reveal from '@/components/ui/Reveal';
+import CountUp from '@/components/ui/CountUp';
 import BookButton from '@/components/booking/BookButton';
 import Accordion from '@/components/site/Accordion';
 import MapEmbed from '@/components/site/MapEmbed';

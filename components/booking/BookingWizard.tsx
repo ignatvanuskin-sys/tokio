@@ -256,7 +256,7 @@ export default function BookingWizard({ initialServiceSlug, embedded = false, on
       <div className="step-in flex flex-col gap-6 p-6 md:p-8">
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="grid size-16 place-items-center rounded-full border border-[var(--color-success)]/40 bg-[var(--color-success)]/10">
-            <CircleCheck className="size-8 text-[var(--color-success)]" aria-hidden="true" />
+            <CircleCheck className="pop size-8 text-[var(--color-success)]" aria-hidden="true" />
           </span>
           <p className="eyebrow !justify-center">Запись принята</p>
           <h2 className="h2 text-[26px] md:text-[32px]">Спасибо, {result.name}!</h2>

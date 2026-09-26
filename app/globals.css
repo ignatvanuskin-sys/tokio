@@ -5,20 +5,39 @@
  * Графит и металл, крупная сжатая типографика, один акцент — оранжевый.
  * ------------------------------------------------------------------ */
 @theme {
-  --color-bg: #0b0c0e;
-  --color-surface: #131518;
-  --color-surface-2: #1a1d21;
-  --color-line: #272c32;
-  --color-line-strong: #3a4149;
-  --color-ink: #f4f5f6;
-  --color-muted: #98a0aa;
-  --color-chrome: #c9cfd6;
-  --color-accent: #ff5a1f;
-  --color-accent-soft: #ff7a45;
-  --color-accent-ink: #0b0c0e;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
+  /* Фон и поверхности: почти чёрный с холодным синим отливом. */
+  --color-bg: #05080b;
+  --color-surface: #0c1116;
+  --color-surface-2: #131a21;
+  --color-sunken: #080c10;
+  --color-line: #1e2831;
+  --color-line-strong: #2f3d4a;
+
+  /* Текст: от почти белого к приглушённому. */
+  --color-ink: #eef3f7;
+  --color-chrome: #b6c4d0;
+  --color-muted: #78899a;
+  --color-faint: #53616e;
+
+  /* Единственный акцент — электрический бирюзовый. Тёмный текст на нём. */
+  --color-accent: #14e0c4;
+  --color-accent-soft: #4bf0da;
+  --color-accent-deep: #0aa892;
+  --color-accent-ink: #032420;
+  /* Партнёр по градиенту — для подсветок и линий. */
+  --color-accent-2: #3b82f6;
+
+  --color-success: #2fd07f;
+  --color-warning: #ffb020;
+  --color-danger: #ff5a5a;
+
+  /* Точки технической сетки. */
+  --color-dot: rgba(255, 255, 255, 0.06);
+
+  /* Кривые движения: пружина для отклика, экспо для появления. */
+  --ease-spring: cubic-bezier(0.22, 1.35, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
 
   --font-display: var(--font-oswald), 'Arial Narrow', system-ui, sans-serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -414,7 +433,364 @@
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
+  /* ==========================================================================
+   Движение и фактура.
+   Правило: каждое движение объясняет состояние, а не украшает.
+   ========================================================================== */
+
+@layer base {
+  /* Техническая точечная сетка — «миллиметровка» под тёмным фоном. */
+  .dotgrid {
+    background-image: radial-gradient(var(--color-dot) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  /* Диагональная штриховка для «закрытых» зон. */
+  .hatch {
+    background-image: repeating-linear-gradient(
+      45deg,
+      var(--color-line) 0 1px,
+      transparent 1px 7px
+    );
+  }
+
+  /* Тонкая световая линия сверху — металлическая кромка. */
+  .metal-top {
+    position: relative;
+  }
+
+  .metal-top::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-line-strong) 18%,
+      var(--color-accent) 50%,
+      var(--color-line-strong) 82%,
+      transparent
+    );
+    opacity: 0.45;
+    pointer-events: none;
+  }
+}
+
+@layer utilities {
+  /* --- Появление при прокрутке: варианты ------------------------------ */
+  /* Скрытое состояние включается только при работающем JS (класс .js на
+     <html>): без JavaScript контент обязан быть виден, а не остаться на
+     opacity:0 навсегда. */
+  .reveal {
+    transition:
+      opacity 0.7s var(--ease-out-expo),
+      transform 0.7s var(--ease-out-expo);
+    will-change: opacity, transform;
+  }
+
+  .js .reveal {
+    opacity: 0;
+  }
+
+  .js .reveal-up {
+    transform: translateY(22px);
+  }
+
+  .js .reveal-scale {
+    transform: scale(0.965);
+  }
+
+  .js .reveal-left {
+    transform: translateX(-18px);
+  }
+
+  .js .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* --- Лесенка: задаётся инлайновым --stagger ------------------------- */
+  .stagger > * {
+    animation: riseIn 0.68s var(--ease-out-expo) both;
+    animation-delay: calc(var(--stagger, 0) * 1ms);
+  }
+
+  @keyframes riseIn {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* --- Кнопка: световой отблеск подтверждает нажатие ------------------ */
+  .sheen {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .sheen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-130%) skewX(-18deg);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--color-ink) 26%, transparent),
+      transparent
+    );
+    pointer-events: none;
+  }
+
+  .sheen:hover::after,
+  .sheen:focus-visible::after {
+    animation: sweep 0.75s var(--ease-soft);
+  }
+
+  @keyframes sweep {
+    to {
+      transform: translateX(130%) skewX(-18deg);
+    }
+  }
+
+  /* --- Отклик на нажатие: пружина ------------------------------------ */
+  .tactile {
+    transition:
+      transform 0.22s var(--ease-spring),
+      box-shadow 0.22s var(--ease-soft),
+      border-color 0.22s var(--ease-soft),
+      background-color 0.22s var(--ease-soft);
+  }
+
+  .tactile:hover {
+    transform: translateY(-2px);
+  }
+
+  .tactile:active {
+    transform: translateY(0) scale(0.985);
+  }
+
+  /* --- Пульс акцента ------------------------------------------------- */
+  .pulse-ring {
+    animation: pulseRing 2.6s var(--ease-soft) infinite;
+  }
+
+  @keyframes pulseRing {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 45%, transparent);
+    }
+    70% {
+      box-shadow: 0 0 0 9px color-mix(in srgb, var(--color-accent) 0%, transparent);
+    }
+    100% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 0%, transparent);
+    }
+  }
+
+  /* --- Логотип: дуга тормозного диска доворачивается ------------------ */
+  .logo-arc {
+    transition: transform 0.85s var(--ease-out-expo);
+    transform-origin: 50% 50%;
+  }
+
+  .logo-mark:hover .logo-arc,
+  .logo-mark:focus-visible .logo-arc {
+    transform: rotate(180deg);
+  }
+
+  .logo-dot {
+    transition:
+      transform 0.35s var(--ease-spring),
+      opacity 0.35s var(--ease-soft);
+  }
+
+  .logo-mark:hover .logo-dot {
+    transform: scale(1.5);
+  }
+
+  /* --- Развёртка по hero: один проход, «диагностика» ------------------ */
+  .scan::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 34%;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      color-mix(in srgb, var(--color-accent) 9%, transparent),
+      transparent
+    );
+    animation: scanDown 2.6s var(--ease-soft) 0.35s 1 both;
+    pointer-events: none;
+  }
+
+  @keyframes scanDown {
+    from {
+      transform: translateY(-40%);
+      opacity: 0;
+    }
+    35% {
+      opacity: 1;
+    }
+    to {
+      transform: translateY(320%);
+      opacity: 0;
+    }
+  }
+
+  /* --- Выбор слота: пружинное подтверждение --------------------------- */
+  .pop {
+    animation: pop 0.34s var(--ease-spring) both;
+  }
+
+  @keyframes pop {
+    0% {
+      transform: scale(0.94);
+    }
+    60% {
+      transform: scale(1.03);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* --- Галочка на экране успеха: рисование контура ------------------- */
+  .draw-check {
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    animation: drawCheck 0.6s var(--ease-out-expo) 0.15s both;
+  }
+
+  @keyframes drawCheck {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .rise-in {
+    animation: riseIn 0.68s var(--ease-out-expo) both;
+  }
+
+  /* --- Мягкое свечение акцента для активных состояний ---------------- */
+  .glow-accent {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--color-accent) 40%, transparent),
+      0 12px 34px -14px color-mix(in srgb, var(--color-accent) 55%, transparent);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Моторика общих классов.
+   Определена здесь, а не в компонентах: так она одинакова для всех кнопок,
+   карточек и чипов и не может «забыться» в новом компоненте.
+   -------------------------------------------------------------------------- */
+
+.btn {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.22s var(--ease-spring),
+    box-shadow 0.24s var(--ease-soft),
+    border-color 0.24s var(--ease-soft),
+    background-color 0.24s var(--ease-soft),
+    color 0.24s var(--ease-soft);
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn:active {
+  transform: translateY(0) scale(0.985);
+}
+
+/* Отблеск по кнопке — подтверждает, что нажатие принято. */
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-130%) skewX(-18deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-ink) 24%, transparent),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.btn:hover::after,
+.btn:focus-visible::after {
+  animation: sweep 0.7s var(--ease-soft);
+}
+
+.btn-primary,
+.btn-primary:hover {
+  color: var(--color-accent-ink);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-accent-soft) 0%, var(--color-accent) 55%, var(--color-accent-deep) 100%);
+  box-shadow: 0 10px 30px -14px color-mix(in srgb, var(--color-accent) 70%, transparent);
+}
+
+.btn-secondary:hover,
+.btn-ghost:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-line-strong));
+}
+
+/* Карточка приподнимается и подсвечивает кромку. */
+.card {
+  transition:
+    transform 0.3s var(--ease-out-expo),
+    border-color 0.3s var(--ease-soft),
+    box-shadow 0.3s var(--ease-soft);
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--color-accent) 26%, var(--color-line));
+  box-shadow: 0 20px 44px -26px color-mix(in srgb, var(--color-accent) 42%, transparent);
+}
+
+.chip {
+  transition:
+    transform 0.2s var(--ease-spring),
+    border-color 0.2s var(--ease-soft),
+    background-color 0.2s var(--ease-soft),
+    color 0.2s var(--ease-soft);
+}
+
+.chip:active {
+  transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheen::after,
+  .pulse-ring,
+  .pop,
+  .rise-in,
+  .stagger > *,
+  .scan::after {
+    animation: none !important;
+  }
+  .btn::after,
+  .card,
+  .chip,
+  .tactile:hover,
+  .tactile:active,
+  .logo-mark:hover .logo-arc {
+    transform: none !important;
+  }
     *,
     *::before,
     *::after {

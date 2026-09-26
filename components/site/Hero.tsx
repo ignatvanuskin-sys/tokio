@@ -3,6 +3,7 @@ import { BUSINESS, TWO_GIS } from '@/content/business';
 import { HERO_IMAGE } from '@/content/gallery';
 import { ratingsWord, reviewsWord } from '@/lib/format';
 import BookButton from '@/components/booking/BookButton';
+import CountUp from '@/components/ui/CountUp';
 
 /**
  * Первый экран отвечает на четыре вопроса: что это, где, почему стоит обратиться
@@ -73,7 +74,9 @@ export default function Hero() {
               className="inline-flex min-h-[44px] items-center gap-2 text-[var(--color-ink)] transition-colors hover:text-[var(--color-accent)]"
             >
               <Star className="size-4 fill-[var(--color-accent)] text-[var(--color-accent)]" aria-hidden="true" />
-              <strong className="font-semibold">{BUSINESS.rating.value.toLocaleString('ru-RU')}</strong>
+              <strong className="font-semibold">
+                <CountUp value={BUSINESS.rating.value} decimals={1} />
+              </strong>
               <span className="text-[var(--color-muted)]">
                 в {BUSINESS.rating.source} · {ratingsWord(BUSINESS.rating.ratingsCount)} ·{' '}
                 {reviewsWord(BUSINESS.rating.reviewsCount)}
