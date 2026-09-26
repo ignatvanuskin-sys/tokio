@@ -7,7 +7,7 @@ export default function NotFound() {
     <div className="shell flex min-h-[70svh] items-center py-14">
       <div className="max-w-lg">
         <span className="eyebrow">Ошибка 404</span>
-        <h1 className="mt-2 text-display-2 font-extrabold text-white">Страница не найдена</h1>
+        <h1 className="mt-2 text-display-2 font-semibold text-white">Страница не найдена</h1>
         <p className="mt-3 text-[0.9375rem] leading-relaxed text-steel-400">
           Такой страницы нет. Возможно, ссылка устарела. Записаться можно прямо сейчас — или
           посмотрите список услуг.

@@ -12,6 +12,7 @@ function payload(overrides: Record<string, unknown> = {}) {
     slotTime: '14:00',
     name: 'Иван Петров',
     phone: '+7 778 998 88 77',
+    consent: true,
     idempotencyKey: crypto.randomUUID(),
     ...overrides,
   };
@@ -85,6 +86,19 @@ describe('booking payload validation', () => {
   it('caps the comment length', () => {
     expect(createBookingSchema.safeParse(payload({ comment: 'x'.repeat(601) })).success).toBe(false);
     expect(createBookingSchema.safeParse(payload({ comment: 'Стучит справа' })).success).toBe(true);
+  });
+
+  it('requires explicit consent to process personal data', () => {
+    expect(createBookingSchema.safeParse(payload({ consent: false })).success).toBe(false);
+    expect(createBookingSchema.safeParse(payload({ consent: true })).success).toBe(true);
+  });
+
+  it('accepts the anti-bot fields and leaves them optional', () => {
+    expect(createBookingSchema.safeParse(payload()).success).toBe(true);
+    const withSignals = createBookingSchema.safeParse(
+      payload({ trap: '', elapsedMs: 5400 }),
+    );
+    expect(withSignals.success).toBe(true);
   });
 
   it('requires a UUID idempotency key', () => {

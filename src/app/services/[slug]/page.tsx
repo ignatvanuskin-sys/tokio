@@ -135,7 +135,7 @@ export default async function ServiceDetailPage({
             </nav>
 
             {group && <span className="eyebrow">{group.label}</span>}
-            <h1 className="mt-2 max-w-3xl text-display-2 font-extrabold text-white">
+            <h1 className="mt-2 max-w-3xl text-display-2 font-semibold text-white">
               {service.title}
             </h1>
             <p className="mt-3 max-w-2xl text-lead text-steel-200">{service.summary}</p>
@@ -169,7 +169,7 @@ export default async function ServiceDetailPage({
         {/* Body ---------------------------------------------------------- */}
         <div className="shell grid gap-8 py-10 md:py-16 lg:grid-cols-[1.5fr_1fr] lg:gap-12">
           <div>
-            <h2 className="text-display-3 font-extrabold text-white">Что входит</h2>
+            <h2 className="text-display-3 font-semibold text-white">Что входит</h2>
             <ul className="mt-4 flex flex-col gap-2.5">
               {service.includes.map((item) => (
                 <li key={item} className="flex items-start gap-3 text-[0.9375rem] text-steel-200">
@@ -179,7 +179,7 @@ export default async function ServiceDetailPage({
               ))}
             </ul>
 
-            <h2 className="mt-9 text-display-3 font-extrabold text-white">Стоимость</h2>
+            <h2 className="mt-9 text-display-3 font-semibold text-white">Стоимость</h2>
             <div className="mt-4 rounded-card border border-hairline bg-surface p-5">
               <p className="text-[1.0625rem] font-semibold text-white">{business.priceNote}</p>
               <p className="mt-2 text-[0.875rem] leading-relaxed text-steel-400">
@@ -202,7 +202,7 @@ export default async function ServiceDetailPage({
               </div>
             </div>
 
-            <h2 className="mt-9 text-display-3 font-extrabold text-white">Как мы работаем</h2>
+            <h2 className="mt-9 text-display-3 font-semibold text-white">Как мы работаем</h2>
             <ol className="mt-4 flex flex-col gap-3">
               {[
                 'Вы оставляете заявку на сайте или звоните — согласуем удобное время.',
@@ -308,7 +308,7 @@ export default async function ServiceDetailPage({
         {/* Related ------------------------------------------------------- */}
         {(related.length > 0 ? related : fallbackRelated).length > 0 && (
           <section aria-labelledby="related-heading" className="shell pb-12 md:pb-16">
-            <h2 id="related-heading" className="text-display-3 font-extrabold text-white">
+            <h2 id="related-heading" className="text-display-3 font-semibold text-white">
               Другие услуги
             </h2>
             <ul className="mt-6 grid grid-cols-1 gap-3.5 md:grid-cols-3 md:gap-5">

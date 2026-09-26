@@ -5,34 +5,38 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
 import { business } from '@/data/business';
-import { serviceGroups, services } from '@/data/services';
+import { services } from '@/data/services';
 import type { DayAvailability } from '@/lib/booking/types';
-import { checkPhone } from '@/lib/phone';
-import {
-  addDays,
-  formatDateRu,
-  formatDateRuFull,
-  formatDateRuWithWeekday,
-  relativeDayLabel,
-  weekdayNameRu,
-} from '@/lib/time';
+import { formatDateRuFull, relativeDayLabel, weekdayNameRu } from '@/lib/time';
 import { track } from '@/lib/analytics';
-import { StepProgress, BOOKING_STEPS } from './StepProgress';
+import {
+  AlertIcon,
+  CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ServiceIcon,
+  SpinnerIcon,
+} from '@/components/icons';
 import { PhoneField } from './PhoneField';
 import { SuccessScreen } from './SuccessScreen';
 
+const STEP_TITLES = ['Услуга', 'Автомобиль', 'Дата', 'Время', 'Контакты'] as const;
+const TOTAL_STEPS = STEP_TITLES.length;
+const MAX_COMMENT = 600;
+
 type Draft = {
   serviceSlug: string;
-  vehicleMake: string;
-  vehicleModel: string;
-  vehicleYear: string;
-  slotDate: string;
-  slotTime: string;
+  carBrand: string;
+  carModel: string;
+  carYear: string;
+  date: string;
+  time: string;
   name: string;
   phone: string;
   comment: string;
-  idempotencyKey: string;
 };
+
+type FieldErrors = Partial<Record<keyof Draft | 'consent', string>>;
 
 type Props = {
   todayKey: string;
@@ -42,17 +46,31 @@ type Props = {
   isDemo: boolean;
 };
 
-const DRAFT_KEY = 'tokyo_booking_draft_v1';
+const DRAFT_KEY = 'tokyo_booking_draft_v2';
 
 function newKey(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-  // Extremely old browsers: still a valid v4-shaped UUID.
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
   });
 }
 
+/**
+ * Booking wizard — five steps: услуга → автомобиль → дата → время → контакты.
+ *
+ * Layout mirrors the reference design: a sticky step header with a segmented
+ * progress bar, the step body in the middle, a sticky two-button footer. On a
+ * phone the primary action therefore always sits under the thumb.
+ *
+ * Behaviour that matters more than the look:
+ *  · the slot grid comes from the server; a slot is never "busy" at random;
+ *  · a 409 means someone just took the slot — the user returns to the time step
+ *    with a freshly loaded grid and an explicit notice;
+ *  · the idempotency key is minted once per draft, so a retry after a flaky
+ *    connection cannot create a second booking;
+ *  · nothing implies auto-confirmation — the master confirms by phone.
+ */
 export function BookingWidget({
   todayKey,
   bookableDates,
@@ -64,28 +82,27 @@ export function BookingWidget({
   const fromQuery = params.get('service');
 
   const [step, setStep] = useState(1);
-  const [draft, setDraft] = useState<Draft>(() => ({
-    serviceSlug: fromQuery && services.some((s) => s.slug === fromQuery) ? fromQuery : initialServiceSlug,
-    vehicleMake: '',
-    vehicleModel: '',
-    vehicleYear: '',
-    slotDate: bookableDates[0] ?? todayKey,
-    slotTime: '',
+  const [values, setValues] = useState<Draft>(() => ({
+    serviceSlug:
+      fromQuery && services.some((s) => s.slug === fromQuery) ? fromQuery : initialServiceSlug,
+    carBrand: '',
+    carModel: '',
+    carYear: '',
+    date: bookableDates[0] ?? todayKey,
+    time: '',
     name: '',
     phone: '',
     comment: '',
-    idempotencyKey: newKey(),
   }));
+  const [consent, setConsent] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
 
   const [availability, setAvailability] = useState<DayAvailability>(initialAvailability);
-  const [loadingSlots, setLoadingSlots] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<{
-    message: string;
-    action: 'retry' | 'contact';
-  } | null>(null);
-  const [confirmed, setConfirmed] = useState<null | {
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [slotNotice, setSlotNotice] = useState<string | null>(null);
+  const [result, setResult] = useState<null | {
     id: string;
     serviceTitle: string;
     slotDate: string;
@@ -94,30 +111,35 @@ export function BookingWidget({
     phone: string;
   }>(null);
 
+  const idempotencyKey = useRef<string>(newKey());
+  const startedAt = useRef<number>(0);
+  const trap = useRef<string>('');
   const headingRef = useRef<HTMLHeadingElement>(null);
   const mounted = useRef(false);
 
-  /* ---------------------------------------------------------------- draft */
+  const selectedService = useMemo(
+    () => services.find((s) => s.slug === values.serviceSlug) ?? null,
+    [values.serviceSlug],
+  );
 
-  // Restore an in-progress draft so a refresh or an accidental Back does not
-  // wipe what the customer already typed.
+  /* ------------------------------------------------------------ черновик */
+
   useEffect(() => {
+    startedAt.current = Date.now();
     try {
       const raw = sessionStorage.getItem(DRAFT_KEY);
       if (!raw) return;
       const saved = JSON.parse(raw) as Partial<Draft>;
-      setDraft((d) => ({
-        ...d,
+      setValues((current) => ({
+        ...current,
         ...saved,
-        // Never restore a stale date/slot — availability may have changed.
-        slotTime: '',
-        idempotencyKey: saved.idempotencyKey || d.idempotencyKey,
+        // Занятость могла измениться, пока вкладка была закрыта.
+        time: '',
       }));
-      if (saved.serviceSlug) setStep(queryStep(saved));
+      if (saved.serviceSlug) setStep(2);
     } catch {
-      /* corrupted storage — start clean */
+      /* повреждённое хранилище — начинаем заново */
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -126,53 +148,29 @@ export function BookingWidget({
       return;
     }
     try {
-      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(values));
     } catch {
-      /* private mode — ignore */
+      /* приватный режим */
     }
-  }, [draft]);
+  }, [values]);
 
-  // Guard: browsers restore form state on Back; make sure our state is the truth.
-  useEffect(() => {
-    const onPop = () => {
-      try {
-        const raw = sessionStorage.getItem(DRAFT_KEY);
-        if (raw) {
-          const saved = JSON.parse(raw) as Partial<Draft>;
-          setDraft((d) => ({ ...d, ...saved, slotTime: '' }));
-        }
-      } catch {
-        /* ignore */
-      }
-    };
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+  const patch = useCallback((patchValues: Partial<Draft>) => {
+    setValues((current) => ({ ...current, ...patchValues }));
+    setServerError(null);
   }, []);
 
-  const patch = useCallback((p: Partial<Draft>) => {
-    setDraft((d) => ({ ...d, ...p }));
-    setFormError(null);
-  }, []);
-
-  /* ------------------------------------------------------------ selecting */
-
-  const selectedService = useMemo(
-    () => services.find((s) => s.slug === draft.serviceSlug),
-    [draft.serviceSlug],
+  const setField = useCallback(
+    <K extends keyof Draft>(field: K, value: Draft[K]) => {
+      patch({ [field]: value } as Partial<Draft>);
+      setErrors((current) => ({ ...current, [field]: undefined }));
+    },
+    [patch],
   );
 
-  const groupedServices = useMemo(
-    () =>
-      serviceGroups
-        .map((g) => ({ group: g, items: services.filter((s) => s.group === g.id) }))
-        .filter((g) => g.items.length > 0),
-    [],
-  );
-
-  /* --------------------------------------------------------- availability */
+  /* --------------------------------------------------------------- слоты */
 
   const loadAvailability = useCallback(async (dateKey: string) => {
-    setLoadingSlots(true);
+    setSlotsLoading(true);
     try {
       const res = await fetch(`/api/availability?date=${encodeURIComponent(dateKey)}`, {
         cache: 'no-store',
@@ -181,119 +179,119 @@ export function BookingWidget({
       const json = (await res.json()) as { ok: boolean; availability: DayAvailability };
       if (json.ok) setAvailability(json.availability);
     } catch {
-      // Keep the previous availability rather than showing an empty grid; the
-      // submit path re-checks server-side anyway.
-      setFormError({
-        message: 'Не удалось загрузить свободное время. Проверьте соединение и попробуйте ещё раз.',
-        action: 'retry',
-      });
+      setServerError('Не удалось загрузить свободное время. Проверьте связь и попробуйте снова.');
     } finally {
-      setLoadingSlots(false);
+      setSlotsLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    if (step === 4 && availability.date !== draft.slotDate) {
-      void loadAvailability(draft.slotDate);
-    }
-  }, [step, draft.slotDate, availability.date, loadAvailability]);
+  const chooseDate = async (date: string) => {
+    setSlotNotice(null);
+    setErrors((current) => ({ ...current, date: undefined }));
+    patch({ date, time: '' });
+    await loadAvailability(date);
+  };
 
-  /* ----------------------------------------------------------- validation */
+  /* ----------------------------------------------------------- валидация */
 
-  const validateStep = (n: number): Record<string, string> => {
-    const e: Record<string, string> = {};
-    if (n === 1) {
-      if (!draft.serviceSlug) e.serviceSlug = 'Выберите услугу';
-    }
-    if (n === 2) {
-      const year = draft.vehicleYear.trim();
+  const fieldsOfStep = (current: number): Array<keyof Draft> => {
+    if (current === 1) return ['serviceSlug'];
+    if (current === 2) return ['carBrand', 'carModel', 'carYear', 'comment'];
+    if (current === 3) return ['date'];
+    if (current === 4) return ['time'];
+    return ['name', 'phone', 'comment'];
+  };
+
+  const validateStep = (current: number): FieldErrors => {
+    const found: FieldErrors = {};
+
+    if (current === 1 && !values.serviceSlug) found.serviceSlug = 'Выберите услугу';
+
+    if (current === 2) {
+      const year = values.carYear.trim();
       if (year) {
-        const y = Number(year);
-        const max = new Date().getFullYear() + 1;
-        if (!Number.isFinite(y) || y < 1950 || y > max) e.vehicleYear = 'Проверьте год выпуска';
-      }
-      // Make and model are optional on purpose — never block a booking on them.
-    }
-    if (n === 3) {
-      if (!draft.slotDate) e.slotDate = 'Выберите дату';
-      else if (!bookableDates.includes(draft.slotDate)) {
-        // Allow dates typed into the native picker beyond the chip list.
-        if (draft.slotDate < todayKey || draft.slotDate > addDays(todayKey, 30)) {
-          e.slotDate = 'Дата вне доступного периода записи';
+        const n = Number(year);
+        if (!Number.isFinite(n) || n < 1950 || n > new Date().getFullYear() + 1) {
+          found.carYear = 'Проверьте год выпуска';
         }
       }
+      // Марка и модель необязательны — не блокируем запись из-за них.
     }
-    if (n === 4) {
-      if (!draft.slotTime) e.slotTime = 'Выберите время';
+
+    if (current === 3 && !values.date) found.date = 'Выберите дату';
+
+    if (current === 4) {
+      if (!values.time) found.time = 'Выберите время';
       else {
-        const slot = availability.slots.find((s) => s.time === draft.slotTime);
-        if (!slot || !slot.available) e.slotTime = 'Это время недоступно, выберите другое';
+        const slot = availability.slots.find((s) => s.time === values.time);
+        if (!slot || !slot.available) found.time = 'Это время недоступно, выберите другое';
       }
     }
-    if (n === 5) {
-      if (draft.name.trim().length < 2) e.name = 'Укажите имя';
-      const phone = checkPhone(draft.phone);
-      if (!phone.ok) e.phone = phone.message;
+
+    if (current === 5) {
+      if (values.name.trim().length < 2) found.name = 'Укажите имя';
+      const digits = values.phone.replace(/\D/g, '');
+      if (digits.length < 11) found.phone = 'Введите номер полностью: +7 (___) ___-__-__';
+      if (values.comment.length > MAX_COMMENT) found.comment = 'Комментарий слишком длинный';
+      if (!consent) found.consent = 'Нужно согласие на обработку данных';
     }
-    return e;
+
+    return found;
+  };
+
+  const focusFirstInvalid = (found: FieldErrors) => {
+    const first = Object.keys(found)[0];
+    if (!first || first === 'consent') return;
+    window.setTimeout(() => {
+      document.querySelector<HTMLElement>(`[data-field="${first}"]`)?.focus();
+    }, 40);
   };
 
   const goNext = () => {
-    const e = validateStep(step);
-    setErrors(e);
-    if (Object.keys(e).length > 0) {
-      focusFirstInvalid(e);
+    setServerError(null);
+    const found = validateStep(step);
+    setErrors(found);
+    if (Object.keys(found).length > 0) {
+      focusFirstInvalid(found);
       return;
     }
-    if (step === 1) track('service_selected', { serviceSlug: draft.serviceSlug, step: 'wizard' });
-    if (step === 2) track('booking_started', { step: 'vehicle', stepIndex: 2 });
-    if (step === 3) track('date_selected', { slotDate: draft.slotDate, step: 'wizard' });
-    if (step === 4) track('time_selected', { slotTime: draft.slotTime, step: 'wizard' });
 
-    const next = Math.min(step + 1, BOOKING_STEPS.length);
+    if (step === 1) track('service_selected', { serviceSlug: values.serviceSlug });
+    if (step === 3) track('date_selected', { slotDate: values.date });
+    if (step === 4) track('time_selected', { slotTime: values.time });
+
+    const next = Math.min(TOTAL_STEPS, step + 1);
+    if (next === 4 && values.date) void loadAvailability(values.date);
     setStep(next);
-    announce();
+    window.setTimeout(() => headingRef.current?.focus(), 40);
   };
 
   const goBack = () => {
-    setErrors({});
-    setStep((s) => Math.max(1, s - 1));
-    announce();
+    setServerError(null);
+    setSlotNotice(null);
+    setStep((current) => Math.max(1, current - 1));
+    window.setTimeout(() => headingRef.current?.focus(), 40);
   };
 
-  const jumpTo = (n: number) => {
-    setErrors({});
-    setStep(n);
-  };
-
-  function focusFirstInvalid(e: Record<string, string>) {
-    const first = Object.keys(e)[0];
-    if (!first) return;
-    window.setTimeout(() => {
-      document.querySelector<HTMLElement>(`[data-field="${first}"]`)?.focus();
-    }, 30);
-  }
-
-  function announce() {
-    window.setTimeout(() => headingRef.current?.focus(), 30);
-  }
-
-  /* --------------------------------------------------------------- submit */
+  /* -------------------------------------------------------------- отправка */
 
   const submit = async () => {
-    if (submitting) return; // belt and braces against a double tap
+    if (submitting) return; // защита от двойного тапа
 
-    const e = validateStep(5);
-    if (Object.keys(e).length > 0) {
-      setErrors(e);
-      setStep(5);
-      focusFirstInvalid(e);
+    const found = validateStep(5);
+    setErrors(found);
+    if (Object.keys(found).length > 0) {
+      focusFirstInvalid(found);
       return;
     }
 
     setSubmitting(true);
-    setFormError(null);
-    track('booking_submitted', { serviceSlug: draft.serviceSlug, slotDate: draft.slotDate, slotTime: draft.slotTime });
+    setServerError(null);
+    track('booking_submitted', {
+      serviceSlug: values.serviceSlug,
+      slotDate: values.date,
+      slotTime: values.time,
+    });
 
     try {
       const res = await fetch('/api/booking', {
@@ -301,16 +299,19 @@ export function BookingWidget({
         headers: { 'content-type': 'application/json' },
         cache: 'no-store',
         body: JSON.stringify({
-          serviceSlug: draft.serviceSlug,
-          slotDate: draft.slotDate,
-          slotTime: draft.slotTime,
-          name: draft.name.trim(),
-          phone: draft.phone,
-          vehicleMake: draft.vehicleMake.trim(),
-          vehicleModel: draft.vehicleModel.trim(),
-          vehicleYear: draft.vehicleYear.trim(),
-          comment: draft.comment.trim(),
-          idempotencyKey: draft.idempotencyKey,
+          serviceSlug: values.serviceSlug,
+          slotDate: values.date,
+          slotTime: values.time,
+          name: values.name.trim(),
+          phone: values.phone,
+          vehicleMake: values.carBrand.trim(),
+          vehicleModel: values.carModel.trim(),
+          vehicleYear: values.carYear.trim(),
+          comment: values.comment.trim(),
+          consent: true,
+          idempotencyKey: idempotencyKey.current,
+          trap: trap.current,
+          elapsedMs: Date.now() - startedAt.current,
         }),
       });
 
@@ -320,75 +321,71 @@ export function BookingWidget({
             code?: string;
             message?: string;
             fields?: Record<string, string>;
-            booking?: { id: string; serviceTitle: string; slotDate: string; slotTime: string; customerName: string };
+            booking?: {
+              id: string;
+              serviceTitle: string;
+              slotDate: string;
+              slotTime: string;
+              customerName: string;
+            };
             availability?: DayAvailability;
           }
         | null;
 
-      // ---- Slot conflict: the race the backend is built to catch ----------
+      // Слот только что заняли — возвращаем на шаг времени со свежей сеткой.
       if (res.status === 409 || json?.code === 'slot_taken' || json?.code === 'slot_not_bookable') {
         if (json?.availability) setAvailability(json.availability);
-        else void loadAvailability(draft.slotDate);
-        patch({ slotTime: '' });
-        setErrors({ slotTime: json?.message ?? 'Это время только что заняли. Выберите другой слот.' });
+        else void loadAvailability(values.date);
+        setValues((current) => ({ ...current, time: '' }));
+        setSlotNotice(json?.message ?? 'Это время только что заняли — выберите другое.');
         setStep(4);
         track('booking_error', { errorCode: 'slot_taken' });
-        announce();
+        window.setTimeout(() => headingRef.current?.focus(), 40);
         return;
       }
 
       if (res.status === 429 || json?.code === 'rate_limited') {
-        setFormError({
-          message: 'Слишком много попыток отправки. Подождите минуту и попробуйте снова.',
-          action: 'retry',
-        });
+        setServerError('Слишком много попыток отправки. Подождите минуту и попробуйте снова.');
         track('booking_error', { errorCode: 'rate_limited' });
         return;
       }
 
       if (res.status === 400 && json?.fields) {
-        setErrors(json.fields);
-        // Send the user to the step that owns the first problem.
-        const order = ['serviceSlug', 'vehicleYear', 'slotDate', 'slotTime', 'name', 'phone', 'comment'];
-        const firstKey = order.find((k) => json.fields?.[k]);
-        setStep(firstKey === 'serviceSlug' ? 1 : firstKey === 'vehicleYear' ? 2 : firstKey === 'slotDate' ? 3 : firstKey === 'slotTime' ? 4 : 5);
-        focusFirstInvalid(json.fields);
+        setErrors(json.fields as FieldErrors);
+        focusFirstInvalid(json.fields as FieldErrors);
         track('booking_error', { errorCode: 'validation' });
         return;
       }
 
       if (!res.ok || !json?.ok || !json.booking) {
-        setFormError({
-          message:
-            json?.message ??
-            'Не удалось отправить заявку. Позвоните нам или напишите в WhatsApp — примем заявку вручную.',
-          action: 'contact',
-        });
+        setServerError(
+          json?.message ??
+            'Не удалось отправить заявку. Позвоните нам или напишите в WhatsApp — примем вручную.',
+        );
         track('booking_error', { errorCode: json?.code ?? `http_${res.status}` });
         return;
       }
 
-      // ---- Success --------------------------------------------------------
-      setConfirmed({
+      setResult({
         id: json.booking.id,
         serviceTitle: json.booking.serviceTitle,
         slotDate: json.booking.slotDate,
         slotTime: json.booking.slotTime,
         name: json.booking.customerName,
-        phone: draft.phone,
+        phone: values.phone,
       });
-      track('booking_success', { serviceSlug: draft.serviceSlug, slotDate: draft.slotDate, slotTime: draft.slotTime });
+      track('booking_success', {
+        serviceSlug: values.serviceSlug,
+        slotDate: values.date,
+        slotTime: values.time,
+      });
       try {
         sessionStorage.removeItem(DRAFT_KEY);
       } catch {
         /* ignore */
       }
     } catch {
-      // Network-level failure — the request never reached the server.
-      setFormError({
-        message: 'Не удалось отправить заявку. Проверьте соединение и попробуйте ещё раз.',
-        action: 'retry',
-      });
+      setServerError('Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.');
       track('booking_error', { errorCode: 'network' });
     } finally {
       setSubmitting(false);
@@ -396,485 +393,487 @@ export function BookingWidget({
   };
 
   const restart = () => {
-    setConfirmed(null);
+    setResult(null);
     setStep(1);
-    setDraft((d) => ({
+    setConsent(false);
+    idempotencyKey.current = newKey();
+    startedAt.current = Date.now();
+    setValues({
       serviceSlug: initialServiceSlug,
-      vehicleMake: '',
-      vehicleModel: '',
-      vehicleYear: '',
-      slotDate: bookableDates[0] ?? todayKey,
-      slotTime: '',
+      carBrand: '',
+      carModel: '',
+      carYear: '',
+      date: bookableDates[0] ?? todayKey,
+      time: '',
       name: '',
       phone: '',
       comment: '',
-      idempotencyKey: newKey(),
-    }));
+    });
     void loadAvailability(bookableDates[0] ?? todayKey);
   };
 
-  /* ---------------------------------------------------------------- render */
 
-  if (confirmed) {
-    return <SuccessScreen booking={confirmed} onRestart={restart} />;
+  /* ---------------------------------------------------------------- группы */
+
+  const slotGroups = useMemo(
+    () =>
+      [
+        { title: 'Утро', items: availability.slots.filter((s) => s.time < '12:00') },
+        {
+          title: 'День',
+          items: availability.slots.filter((s) => s.time >= '12:00' && s.time < '17:00'),
+        },
+        { title: 'Вечер', items: availability.slots.filter((s) => s.time >= '17:00') },
+      ].filter((group) => group.items.length > 0),
+    [availability],
+  );
+  if (result) {
+    return <SuccessScreen booking={result} onRestart={restart} />;
   }
 
+  const stepError = errors[fieldsOfStep(step)[0] as keyof Draft];
+
   return (
-    <div className="card metal-top p-4 md:p-6">
-      <StepProgress current={step} />
-
-      {isDemo && (
-        <p className="mt-4 rounded-lg border border-warn/30 bg-warn/10 px-3 py-2 text-[0.75rem] leading-relaxed text-warn">
-          Демонстрационный режим: заявки сохраняются в файл на сервере, а не в PostgreSQL.
-          Для запуска в продакшене задайте <code className="font-mono">DATABASE_URL</code>.
+    <div className="card overflow-hidden">
+      {/* ---------------------------------------------------- Шапка шага */}
+      <div className="sticky top-14 z-20 border-b border-hairline bg-surface p-5 md:top-16 md:p-6">
+        <p className="font-mono text-[12px] uppercase tracking-[0.16em] text-steel-400">
+          Шаг {step} из {TOTAL_STEPS} · {STEP_TITLES[step - 1]}
         </p>
-      )}
 
-      <h2
-        ref={headingRef}
-        tabIndex={-1}
-        className="mt-5 text-display-3 font-extrabold text-white outline-none"
-      >
-        {step === 1 && 'Что нужно автомобилю?'}
-        {step === 2 && 'Автомобиль'}
-        {step === 3 && 'Когда удобно приехать?'}
-        {step === 4 && 'Выберите время'}
-        {step === 5 && 'Как с вами связаться?'}
-        {step === 6 && 'Проверьте заявку'}
-      </h2>
-      <p className="mt-1.5 text-[0.875rem] leading-relaxed text-steel-400">
-        {step === 1 && 'Если не знаете, что сломалось — выберите диагностику.'}
-        {step === 2 && 'Всё необязательно: можно пропустить и уточнить на месте.'}
-        {step === 3 && `Запись открыта на ${bookableDates.length} дней вперёд, ежедневно.`}
-        {step === 4 && `${formatDateRuFull(draft.slotDate)} · ${business.hours.display.toLowerCase()}`}
-        {step === 5 && 'Нужны только имя и телефон. Комментарий — по желанию.'}
-        {step === 6 && 'Проверьте данные и подтвердите. Время подтвердит мастер.'}
-      </p>
+        <h2
+          ref={headingRef}
+          tabIndex={-1}
+          className="mt-2 text-[22px] font-semibold outline-none md:text-[26px]"
+        >
+          {step === 1 && 'Что нужно сделать?'}
+          {step === 2 && 'Данные автомобиля'}
+          {step === 3 && 'Когда вам удобно?'}
+          {step === 4 && 'Выберите время'}
+          {step === 5 && 'Куда сообщить о подтверждении'}
+        </h2>
 
-      {/* --------------------------------------------------- STEP 1: service */}
-      {step === 1 && (
-        <div className="mt-5" data-field="serviceSlug">
-          <fieldset>
-            <legend className="sr-only">Выберите услугу</legend>
-            <div className="flex flex-col gap-4">
-              {groupedServices.map(({ group, items }) => (
-                <div key={group.id}>
-                  <p className="eyebrow">{group.label}</p>
-                  <div className="mt-2 flex flex-col gap-2">
-                    {items.map((s) => {
-                      const active = draft.serviceSlug === s.slug;
-                      return (
-                        <label
-                          key={s.slug}
-                          className={`flex min-h-[56px] cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${
-                            active
-                              ? 'border-accent/70 bg-accent-wash'
-                              : 'border-hairline bg-surface-sunken hover:border-hairlineStrong'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="service"
-                            value={s.slug}
-                            checked={active}
-                            onChange={() => patch({ serviceSlug: s.slug, slotTime: '' })}
-                            className="mt-1 h-4 w-4 shrink-0 accent-[#E0242F]"
-                          />
-                          <span className="min-w-0">
-                            <span className="block text-[0.9375rem] font-semibold text-white">
-                              {s.title}
-                            </span>
-                            <span className="mt-0.5 block text-[0.8125rem] leading-snug text-steel-400">
-                              {s.summary}
-                            </span>
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </fieldset>
-          {errors.serviceSlug && (
-            <p className="field-error" role="alert">
-              {errors.serviceSlug}
+        <ol className="mt-4 flex gap-1.5" aria-label="Этапы записи">
+          {STEP_TITLES.map((title, index) => (
+            <li
+              key={title}
+              className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
+                index + 1 <= step ? 'bg-accent' : 'bg-surface-raised'
+              }`}
+            >
+              <span className="sr-only">{title}</span>
+            </li>
+          ))}
+        </ol>
+
+        {isDemo && (
+          <p className="mt-4 rounded-control border border-warn/40 bg-warn/10 px-3 py-2 text-[12px] leading-relaxed text-warn">
+            Демонстрационный режим: заявки сохраняются в файл, а не в PostgreSQL. Задайте{' '}
+            <code className="font-mono">DATABASE_URL</code> для рабочего запуска.
+          </p>
+        )}
+      </div>
+
+      {/* ------------------------------------------------- Содержимое шага */}
+      <div className="p-5 md:p-6">
+        {serverError && (
+          <div
+            role="alert"
+            className="mb-5 flex flex-col gap-3 rounded-control border border-danger bg-danger/10 p-3.5 text-[15px]"
+          >
+            <p className="flex items-start gap-2">
+              <AlertIcon className="mt-0.5 size-5 shrink-0 text-danger" />
+              {serverError}
             </p>
-          )}
-        </div>
-      )}
+            <div className="flex flex-wrap gap-2">
+              <a href={business.phone.e164} className="btn btn-secondary btn-sm">
+                Позвонить
+              </a>
+              <a
+                href={business.whatsapp.deepLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-secondary btn-sm"
+              >
+                WhatsApp
+              </a>
+            </div>
+          </div>
+        )}
 
-      {/* ----------------------------------------------------- STEP 2: vehicle */}
-      {step === 2 && (
-        <div className="mt-5 flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+        {slotNotice && step === 4 && (
+          <p
+            role="status"
+            className="mb-5 rounded-control border border-warn bg-warn/10 p-3.5 text-[15px]"
+          >
+            {slotNotice}
+          </p>
+        )}
+
+        {/* --- Шаг 1: услуга ------------------------------------------------ */}
+        {step === 1 && (
+          <fieldset className="step-in grid gap-2.5">
+            <legend className="sr-only">Выберите услугу</legend>
+            {services.map((service) => {
+              const selected = values.serviceSlug === service.slug;
+              return (
+                <button
+                  key={service.slug}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => setField('serviceSlug', service.slug)}
+                  className={`flex items-center gap-3.5 rounded-control border p-4 text-left transition-colors ${
+                    selected
+                      ? 'border-accent bg-accent/10'
+                      : 'border-hairline bg-surface-raised hover:border-hairlineStrong'
+                  }`}
+                >
+                  <ServiceIcon group={service.group} className="size-6 shrink-0 text-accent" />
+                  <span className="grow">
+                    <span className="block text-[15px] font-semibold text-steel-50">
+                      {service.title}
+                    </span>
+                    <span className="mt-0.5 block text-[13px] text-steel-400">
+                      {business.priceNote}
+                    </span>
+                  </span>
+                  {selected && <CheckIcon className="size-5 shrink-0 text-accent" />}
+                </button>
+              );
+            })}
+            {errors.serviceSlug && <p className="error-text">{errors.serviceSlug}</p>}
+          </fieldset>
+        )}
+
+        {/* --- Шаг 2: автомобиль ------------------------------------------- */}
+        {step === 2 && (
+          <div className="step-in grid gap-5">
             <div>
-              <label htmlFor="vmake" className="field-label">
-                Марка
+              <label className="label" htmlFor="carBrand">
+                Марка{' '}
+                <span className="font-normal normal-case text-steel-400">(не обязательно)</span>
               </label>
               <input
-                id="vmake"
-                data-field="vehicleMake"
-                list="brands"
+                id="carBrand"
+                data-field="carBrand"
+                className="field"
+                list="brand-list"
                 autoComplete="off"
                 enterKeyHint="next"
-                value={draft.vehicleMake}
-                onChange={(e) => patch({ vehicleMake: e.target.value })}
                 placeholder="Toyota"
-                className="field"
                 maxLength={40}
+                value={values.carBrand}
+                aria-invalid={Boolean(errors.carBrand)}
+                onChange={(e) => setField('carBrand', e.target.value)}
               />
-              <datalist id="brands">
-                {business.brands.map((b) => (
-                  <option key={b} value={b} />
+              <datalist id="brand-list">
+                {business.brands.map((brand) => (
+                  <option key={brand} value={brand} />
                 ))}
               </datalist>
             </div>
 
             <div>
-              <label htmlFor="vmodel" className="field-label">
-                Модель
+              <label className="label" htmlFor="carModel">
+                Модель{' '}
+                <span className="font-normal normal-case text-steel-400">(не обязательно)</span>
               </label>
               <input
-                id="vmodel"
-                data-field="vehicleModel"
+                id="carModel"
+                data-field="carModel"
+                className="field"
                 autoComplete="off"
                 enterKeyHint="next"
-                value={draft.vehicleModel}
-                onChange={(e) => patch({ vehicleModel: e.target.value })}
                 placeholder="Camry"
-                className="field"
                 maxLength={60}
+                value={values.carModel}
+                aria-invalid={Boolean(errors.carModel)}
+                onChange={(e) => setField('carModel', e.target.value)}
               />
             </div>
-          </div>
 
-          <div className="sm:max-w-[10rem]">
-            <label htmlFor="vyear" className="field-label">
-              Год
-            </label>
-            <input
-              id="vyear"
-              data-field="vehicleYear"
-              inputMode="numeric"
-              autoComplete="off"
-              enterKeyHint="done"
-              value={draft.vehicleYear}
-              onChange={(e) => patch({ vehicleYear: e.target.value.replace(/\D/g, '').slice(0, 4) })}
-              placeholder="2019"
-              aria-invalid={Boolean(errors.vehicleYear) || undefined}
-              className="field tnum"
-            />
-            {errors.vehicleYear && (
-              <p className="field-error" role="alert">
-                {errors.vehicleYear}
+            <div className="sm:max-w-[12rem]">
+              <label className="label" htmlFor="carYear">
+                Год{' '}
+                <span className="font-normal normal-case text-steel-400">(не обязательно)</span>
+              </label>
+              <input
+                id="carYear"
+                data-field="carYear"
+                className="field tnum"
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={4}
+                placeholder="2019"
+                value={values.carYear}
+                aria-invalid={Boolean(errors.carYear)}
+                onChange={(e) => setField('carYear', e.target.value.replace(/\D/g, ''))}
+              />
+              {errors.carYear && <p className="error-text">{errors.carYear}</p>}
+            </div>
+
+            <div>
+              <label className="label" htmlFor="problem">
+                Что беспокоит?{' '}
+                <span className="font-normal normal-case text-steel-400">(не обязательно)</span>
+              </label>
+              <textarea
+                id="problem"
+                data-field="comment"
+                className="field min-h-[104px] resize-y"
+                maxLength={MAX_COMMENT}
+                placeholder="Например: стук спереди справа на неровностях"
+                value={values.comment}
+                onChange={(e) => setField('comment', e.target.value)}
+              />
+              <p className="hint mt-1">
+                {values.comment.length}/{MAX_COMMENT}
               </p>
-            )}
+            </div>
           </div>
+        )}
 
-          <p className="field-hint">
-            Марка и модель помогают подготовить запчасти заранее. Можно не заполнять.
-          </p>
-        </div>
-      )}
-
-      {/* -------------------------------------------------------- STEP 3: date */}
-      {step === 3 && (
-        <div className="mt-5" data-field="slotDate">
-          <div className="rail -mx-4 flex-wrap gap-2 px-4 sm:mx-0 sm:px-0">
-            {bookableDates.map((d) => {
-              const active = draft.slotDate === d;
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => patch({ slotDate: d, slotTime: '' })}
-                  className="chip min-w-[74px] shrink-0 flex-col items-start py-2"
-                >
-                  <span className="text-[0.8125rem] font-semibold">
-                    {relativeDayLabel(d, todayKey) === 'Сегодня' ||
-                    relativeDayLabel(d, todayKey) === 'Завтра'
-                      ? relativeDayLabel(d, todayKey)
-                      : weekdayNameRu(d, true)}
-                  </span>
-                  <span className="text-[0.6875rem] text-steel-400 tnum">{formatDateRu(d)}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-4">
-            <label htmlFor="exact-date" className="field-label">
-              Или выберите дату в календаре
-            </label>
-            <input
-              id="exact-date"
-              type="date"
-              value={draft.slotDate}
-              min={todayKey}
-              max={addDays(todayKey, 30)}
-              onChange={(e) => patch({ slotDate: e.target.value, slotTime: '' })}
-              className="field tnum sm:max-w-[16rem]"
-            />
-          </div>
-
-          {errors.slotDate && (
-            <p className="field-error" role="alert">
-              {errors.slotDate}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* -------------------------------------------------------- STEP 4: time */}
-      {step === 4 && (
-        <div className="mt-5" data-field="slotTime">
-          {loadingSlots ? (
-            <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4" aria-hidden="true">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <li key={i} className="h-[52px] animate-pulse rounded-xl bg-surface-raised" />
-              ))}
-            </ul>
-          ) : (
-            <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {availability.slots.map((slot) => {
-                const disabled = !slot.available || !slot.bookable;
-                const active = draft.slotTime === slot.time;
+        {/* --- Шаг 3: дата --------------------------------------------------- */}
+        {step === 3 && (
+          <div className="step-in grid gap-5">
+            <div
+              className="no-scrollbar -mx-1 flex gap-2.5 overflow-x-auto px-1 pb-2"
+              role="group"
+              aria-label="Доступные даты"
+            >
+              {bookableDates.map((day) => {
+                const selected = values.date === day;
                 return (
-                  <li key={slot.time}>
-                    <button
-                      type="button"
-                      disabled={disabled}
-                      aria-pressed={active}
-                      onClick={() => patch({ slotTime: slot.time })}
-                      className={`flex min-h-[52px] w-full items-center justify-center rounded-xl border text-[0.9375rem] font-semibold transition tnum ${
-                        active
-                          ? 'border-accent bg-accent text-white'
-                          : disabled
-                            ? 'cursor-not-allowed border-hairline bg-surface-sunken text-steel-600 line-through'
-                            : 'border-hairline bg-surface-sunken text-steel-50 hover:border-accent/60 hover:bg-accent-wash'
-                      }`}
-                      title={disabled ? 'Время занято' : 'Свободно'}
-                    >
-                      {slot.time}
-                    </button>
-                  </li>
+                  <button
+                    key={day}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => void chooseDate(day)}
+                    className={`flex w-[92px] shrink-0 flex-col items-center gap-0.5 rounded-control border px-2 py-3 transition-colors ${
+                      selected
+                        ? 'border-accent bg-accent/10'
+                        : 'border-hairline bg-surface-raised hover:border-hairlineStrong'
+                    }`}
+                  >
+                    <span className="text-[11px] uppercase tracking-[0.06em] text-steel-400">
+                      {relativeDayLabel(day, todayKey)}
+                    </span>
+                    <span className="font-display text-[24px] leading-none text-steel-50">
+                      {day.slice(8, 10)}
+                    </span>
+                    <span className="text-[11px] text-steel-400">{weekdayNameRu(day, true)}</span>
+                  </button>
                 );
               })}
-            </ul>
-          )}
+            </div>
 
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-[0.75rem] text-steel-600">
-              Серым зачёркнуто занятое время. Изменения видны сразу.{' '}
-              {availability.slots.every((s) => !s.available) && 'На этот день всё занято — выберите другую дату.'}
+            {errors.date && <p className="error-text">{errors.date}</p>}
+
+            <p className="hint">
+              {values.date
+                ? `Вы выбрали: ${formatDateRuFull(values.date)}. Дальше — время приёма.`
+                : 'Выберите день. Работаем ежедневно, без выходных.'}
             </p>
+          </div>
+        )}
+
+        {/* --- Шаг 4: время ------------------------------------------------- */}
+        {step === 4 && (
+          <div className="step-in grid gap-5">
+            <p className="text-[15px] text-steel-400">
+              {formatDateRuFull(values.date)}
+              {selectedService ? ` · ${selectedService.title}` : ''}
+            </p>
+
+            {slotsLoading ? (
+              <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4" aria-hidden="true">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="skeleton h-[52px]" />
+                ))}
+              </div>
+            ) : slotGroups.length > 0 ? (
+              <div className="grid gap-5">
+                {slotGroups.map((group) => (
+                  <div key={group.title}>
+                    <p className="mb-2.5 font-mono text-[12px] uppercase tracking-[0.16em] text-steel-400">
+                      {group.title}
+                    </p>
+                    <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
+                      {group.items.map((slot) => {
+                        const disabled = !slot.available || !slot.bookable;
+                        const selected = values.time === slot.time;
+                        return (
+                          <button
+                            key={slot.time}
+                            type="button"
+                            disabled={disabled}
+                            aria-pressed={selected}
+                            onClick={() => {
+                              setField('time', slot.time);
+                              setSlotNotice(null);
+                            }}
+                            className={`min-h-[52px] rounded-control border font-semibold transition-colors tnum ${
+                              selected
+                                ? 'border-accent bg-accent text-accent-ink'
+                                : 'border-hairline bg-surface-raised text-steel-50 hover:border-hairlineStrong'
+                            } ${disabled ? 'cursor-not-allowed border-dashed opacity-35 line-through' : ''}`}
+                          >
+                            {slot.time}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+                <p className="hint">
+                  Занятое время отмечено серым. Если удобного часа нет — позвоните, посмотрим
+                  загрузку.
+                </p>
+              </div>
+            ) : (
+              <p className="card p-5 text-[15px] text-steel-400">
+                На эту дату свободного времени нет. Вернитесь и выберите другой день.
+              </p>
+            )}
+
             <button
               type="button"
-              onClick={() => void loadAvailability(draft.slotDate)}
-              className="inline-flex min-h-[36px] items-center gap-1.5 text-[0.75rem] font-medium text-accent-bright hover:text-white"
+              onClick={() => void loadAvailability(values.date)}
+              className="justify-self-start text-[13px] font-medium text-accent hover:text-accent-bright"
             >
               Обновить расписание
             </button>
+
+            {errors.time && <p className="error-text">{errors.time}</p>}
           </div>
-
-          {errors.slotTime && (
-            <p className="field-error" role="alert">
-              <span aria-hidden="true">⚠</span>
-              {errors.slotTime}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* ---------------------------------------------------- STEP 5: contacts */}
-      {step === 5 && (
-        <div className="mt-5 flex flex-col gap-4">
-          <div>
-            <label htmlFor="bname" className="field-label">
-              Имя<span className="text-accent-bright"> *</span>
-            </label>
-            <input
-              id="bname"
-              data-field="name"
-              autoComplete="name"
-              enterKeyHint="next"
-              value={draft.name}
-              onChange={(e) => patch({ name: e.target.value })}
-              placeholder="Как к вам обращаться"
-              maxLength={80}
-              aria-invalid={Boolean(errors.name) || undefined}
-              aria-describedby={errors.name ? 'bname-error' : undefined}
-              className="field"
-            />
-            {errors.name && (
-              <p id="bname-error" className="field-error" role="alert">
-                {errors.name}
-              </p>
-            )}
-          </div>
-
-          <PhoneField
-            value={draft.phone}
-            onChange={(v) => patch({ phone: v })}
-            error={errors.phone}
-          />
-
-          <div>
-            <label htmlFor="bcomment" className="field-label">
-              Комментарий <span className="text-steel-600">(необязательно)</span>
-            </label>
-            <textarea
-              id="bcomment"
-              data-field="comment"
-              rows={3}
-              value={draft.comment}
-              onChange={(e) => patch({ comment: e.target.value })}
-              placeholder="Например: стучит справа спереди на кочках"
-              maxLength={600}
-              className="field resize-y py-3"
-            />
-            <p className="field-hint">{draft.comment.length} / 600</p>
-          </div>
-        </div>
-      )}
-
-      {/* --------------------------------------------------- STEP 6: confirm */}
-      {step === 6 && (
-        <div className="mt-5">
-          <dl className="divide-y divide-hairline overflow-hidden rounded-xl border border-hairline">
-            <SummaryRow label="Услуга" value={selectedService?.title ?? '—'} onEdit={() => jumpTo(1)} />
-            <SummaryRow
-              label="Авто"
-              value={
-                [draft.vehicleMake, draft.vehicleModel, draft.vehicleYear]
-                  .map((v) => v.trim())
-                  .filter(Boolean)
-                  .join(' ') || 'не указано'
-              }
-              onEdit={() => jumpTo(2)}
-            />
-            <SummaryRow label="Дата" value={formatDateRuWithWeekday(draft.slotDate)} onEdit={() => jumpTo(3)} />
-            <SummaryRow label="Время" value={draft.slotTime || '—'} onEdit={() => jumpTo(4)} />
-            <SummaryRow label="Имя" value={draft.name} onEdit={() => jumpTo(5)} />
-            <SummaryRow label="Телефон" value={draft.phone} onEdit={() => jumpTo(5)} />
-            {draft.comment.trim() && (
-              <SummaryRow label="Комментарий" value={draft.comment.trim()} onEdit={() => jumpTo(5)} />
-            )}
-          </dl>
-
-          <p className="mt-4 rounded-xl border border-hairline bg-surface-sunken p-3.5 text-[0.8125rem] leading-relaxed text-steel-400">
-            Отправляя заявку, вы соглашаетесь на обработку указанных данных для подтверждения
-            записи. Мы не рассылаем рекламу. Стоимость работ — после диагностики.
-          </p>
-
-          {formError && (
-            <div
-              role="alert"
-              className="mt-4 rounded-xl border border-accent/40 bg-accent/10 p-3.5 text-[0.8125rem] leading-relaxed text-steel-50"
-            >
-              <p>{formError.message}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {formError.action === 'retry' && (
-                  <button type="button" onClick={() => void submit()} className="btn btn-secondary btn-sm">
-                    Попробовать снова
-                  </button>
-                )}
-                <a href={business.phone.e164} className="btn btn-secondary btn-sm">
-                  Позвонить
-                </a>
-                <a
-                  href={business.whatsapp.deepLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-secondary btn-sm"
-                >
-                  WhatsApp
-                </a>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------ nav */}
-      <div className="mt-6 flex gap-2.5">
-        {step > 1 && (
-          <button type="button" onClick={goBack} className="btn btn-secondary" disabled={submitting}>
-            Назад
-          </button>
         )}
-        {step < BOOKING_STEPS.length ? (
-          <button type="button" onClick={goNext} className="btn btn-primary flex-1">
+
+        {/* --- Шаг 5: контакты --------------------------------------------- */}
+        {step === 5 && (
+          <div className="step-in grid gap-5">
+            <div className="card grid gap-2 bg-surface-raised p-4 text-[14px]">
+              {(
+                [
+                  ['Услуга', selectedService?.title ?? '—'],
+                  [
+                    'Автомобиль',
+                    [values.carBrand, values.carModel, values.carYear]
+                      .map((v) => v.trim())
+                      .filter(Boolean)
+                      .join(' ') || 'не указан',
+                  ],
+                  ['Когда', `${formatDateRuFull(values.date)}, ${values.time}`],
+                ] as const
+              ).map(([label, value]) => (
+                <p key={label} className="flex justify-between gap-4">
+                  <span className="text-steel-400">{label}</span>
+                  <span className="text-right font-semibold text-steel-50">{value}</span>
+                </p>
+              ))}
+            </div>
+
+            <div>
+              <label className="label" htmlFor="name">
+                Имя
+              </label>
+              <input
+                id="name"
+                data-field="name"
+                className="field"
+                autoComplete="name"
+                enterKeyHint="next"
+                placeholder="Как к вам обращаться"
+                maxLength={80}
+                value={values.name}
+                aria-invalid={Boolean(errors.name)}
+                onChange={(e) => setField('name', e.target.value)}
+              />
+              {errors.name && <p className="error-text">{errors.name}</p>}
+            </div>
+
+            <PhoneField
+              value={values.phone}
+              onChange={(v) => setField('phone', v)}
+              error={errors.phone}
+            />
+
+            <label className="flex cursor-pointer items-start gap-3 text-[14px] leading-relaxed">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-6 shrink-0 accent-accent"
+                checked={consent}
+                onChange={(e) => {
+                  setConsent(e.target.checked);
+                  if (errors.consent) setErrors((c) => ({ ...c, consent: undefined }));
+                }}
+                aria-invalid={Boolean(errors.consent)}
+              />
+              <span className="text-steel-400">
+                Согласен на обработку персональных данных —{' '}
+                <Link href="/privacy" className="text-accent underline-offset-4 hover:underline">
+                  политика конфиденциальности
+                </Link>
+                .
+              </span>
+            </label>
+            {errors.consent && <p className="error-text">{errors.consent}</p>}
+
+            {/* Приманка для ботов: люди этого поля не видят. */}
+            <div className="hidden" aria-hidden="true">
+              <label htmlFor="company">Компания</label>
+              <input
+                id="company"
+                tabIndex={-1}
+                autoComplete="off"
+                onChange={(e) => {
+                  trap.current = e.target.value;
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {stepError && step !== 5 && (
+          <p className="sr-only" role="alert">
+            {stepError}
+          </p>
+        )}
+      </div>
+
+      {/* ------------------------------------------------------ Кнопки шага */}
+      <div
+        className="sticky bottom-0 z-20 grid grid-cols-2 gap-3 border-t border-hairline bg-surface p-5 md:p-6"
+        style={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }}
+      >
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={goBack}
+          disabled={step === 1 || submitting}
+          aria-disabled={step === 1 || submitting}
+        >
+          <ChevronLeftIcon className="size-5" />
+          Назад
+        </button>
+
+        {step < TOTAL_STEPS ? (
+          <button type="button" className="btn btn-primary" onClick={goNext}>
             Далее
+            <ChevronRightIcon className="size-5" />
           </button>
         ) : (
           <button
             type="button"
+            className="btn btn-primary"
             onClick={() => void submit()}
             disabled={submitting}
-            aria-busy={submitting}
-            className="btn btn-primary flex-1"
+            aria-disabled={submitting}
           >
-            {submitting ? (
-              <>
-                <span
-                  aria-hidden="true"
-                  className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
-                />
-                Отправляем…
-              </>
-            ) : (
-              'Подтвердить запись'
-            )}
+            {submitting && <SpinnerIcon className="size-5 animate-spin" />}
+            {submitting ? 'Отправляем…' : 'Подтвердить запись'}
           </button>
         )}
       </div>
-
-      <p className="mt-4 text-center text-[0.75rem] leading-relaxed text-steel-600">
-        Или{' '}
-        <Link href="/services" className="text-steel-400 underline decoration-steel-800 underline-offset-2 hover:text-white">
-          посмотреть все услуги
-        </Link>{' '}
-        ·{' '}
-        <a href={business.phone.e164} className="text-steel-400 underline decoration-steel-800 underline-offset-2 hover:text-white">
-          позвонить
-        </a>
-      </p>
     </div>
   );
-}
-
-function SummaryRow({
-  label,
-  value,
-  onEdit,
-}: {
-  label: string;
-  value: string;
-  onEdit: () => void;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-3 bg-surface p-3.5">
-      <div className="min-w-0">
-        <dt className="text-[0.6875rem] uppercase tracking-wider text-steel-600">{label}</dt>
-        <dd className="mt-0.5 text-[0.9375rem] leading-snug text-white">{value}</dd>
-      </div>
-      <button
-        type="button"
-        onClick={onEdit}
-        className="shrink-0 rounded-pill border border-hairline px-3 py-1.5 text-[0.75rem] font-medium text-steel-400 transition hover:border-accent/60 hover:text-white"
-      >
-        Изменить
-      </button>
-    </div>
-  );
-}
-
-/** Maps a restored draft to the furthest step that is still valid. */
-function queryStep(saved: Partial<Draft>): number {
-  if (!saved.serviceSlug) return 1;
-  if (!saved.name && !saved.phone) return 3;
-  return 5;
 }

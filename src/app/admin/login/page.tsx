@@ -21,7 +21,7 @@ export default async function AdminLoginPage() {
     <div className="shell flex min-h-[70svh] items-center py-12">
       <div className="mx-auto w-full max-w-sm">
         <span className="eyebrow">Панель сервиса</span>
-        <h1 className="mt-2 text-display-3 font-extrabold text-white">Вход владельца</h1>
+        <h1 className="mt-2 text-display-3 font-semibold text-white">Вход владельца</h1>
         <p className="mt-2.5 text-[0.875rem] leading-relaxed text-steel-400">
           Здесь видны заявки с сайта: время, клиент, телефон и услуга. Доступ по паролю из
           переменной окружения <code className="font-mono text-steel-200">ADMIN_PASSWORD</code>.

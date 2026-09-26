@@ -105,7 +105,7 @@ export function AdminBoard({ bookings, today }: { bookings: BookingRecord[]; tod
                   <div className="flex items-start gap-3.5">
                     {/* Time + status rail */}
                     <div className="w-[62px] shrink-0">
-                      <span className="block text-[1.125rem] font-extrabold leading-none text-white tnum">
+                      <span className="block text-[1.125rem] font-semibold leading-none text-white tnum">
                         {b.slotTime}
                       </span>
                       <span

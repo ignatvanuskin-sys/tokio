@@ -1,115 +1,101 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * Design system — "Precision Graphite".
+ * Дизайн-система «Токио» — тёмный автомобильный стиль.
  *
- * SOURCE: design decision (not business data).
- * Dark graphite/steel surfaces + one powerful accent (signal red, referencing
- * both automotive brake-signal language and the Japanese-flag red that matches
- * the "Токио" brand), plus restrained metallic gradients and hairline borders.
+ * Значения совпадают с дизайн-системой проекта «Керей»: графит/металл,
+ * один акцент — оранжевый #ff5a1f, сжатая типографика Oswald для заголовков
+ * и Inter для интерфейса. Те же CSS-переменные объявлены в globals.css, чтобы
+ * произвольные значения вида bg-[var(--color-accent)] работали одинаково.
  *
- * Business data is NEVER defined here — see src/data/*.
+ * Бизнес-данные здесь НЕ хранятся — см. src/data/*.
  */
 const config: Config = {
   content: ['./src/**/*.{ts,tsx,mdx}'],
   theme: {
     extend: {
       colors: {
-        ink: '#07080A',
-        graphite: '#0D0F12',
+        // Фон и поверхности
+        ink: '#0b0c0e',
+        graphite: '#0f1114',
         surface: {
-          DEFAULT: '#13161A',
-          raised: '#181C21',
-          sunken: '#0A0C0F',
+          DEFAULT: '#131518',
+          raised: '#1a1d21',
+          sunken: '#0e1012',
         },
-        hairline: 'rgba(255,255,255,0.08)',
-        hairlineStrong: 'rgba(255,255,255,0.16)',
+        // Границы
+        hairline: '#272c32',
+        hairlineStrong: '#3a4149',
+        // Текст: ink → chrome → muted → faint
         steel: {
-          50: '#F6F7F8',
-          200: '#C9CED4',
-          400: '#8C949D',
-          600: '#5B636C',
-          800: '#2A2F35',
+          50: '#f4f5f6',
+          200: '#c9cfd6',
+          400: '#98a0aa',
+          600: '#6a727c',
+          800: '#3a4149',
         },
+        // Единственный акцент
         accent: {
-          DEFAULT: '#E0242F',
-          bright: '#FF3B47',
-          deep: '#A8161F',
-          wash: 'rgba(224,36,47,0.12)',
+          DEFAULT: '#ff5a1f',
+          bright: '#ff7a45',
+          deep: '#cc4413',
+          wash: 'rgba(255,90,31,0.12)',
+          ink: '#0b0c0e',
         },
-        ok: '#2FBF71',
-        warn: '#E8A33D',
+        ok: '#22c55e',
+        warn: '#f59e0b',
+        danger: '#ef4444',
       },
       fontFamily: {
-        sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Roboto', 'sans-serif'],
-        mono: ['var(--font-mono)', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        display: ['var(--font-display)', 'Oswald', 'Arial Narrow', 'system-ui', 'sans-serif'],
+        // Мета-подписи и числовые значения: системный моно, без загрузки файла.
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       fontSize: {
-        // Mobile-first fluid scale. Clamps keep 320px readable and 1920px composed.
-        'display-1': ['clamp(2.35rem, 9.5vw, 5.25rem)', { lineHeight: '0.94', letterSpacing: '-0.035em' }],
-        'display-2': ['clamp(1.75rem, 5.6vw, 3rem)', { lineHeight: '1.02', letterSpacing: '-0.03em' }],
-        'display-3': ['clamp(1.375rem, 4.4vw, 2rem)', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
-        lead: ['clamp(1rem, 3.4vw, 1.1875rem)', { lineHeight: '1.55', letterSpacing: '-0.01em' }],
+        // Клам-шкала Керей: заголовки = Oswald uppercase, крупно и сжато.
+        'display-1': ['clamp(37px, 8.2vw, 74px)', { lineHeight: '1.06', letterSpacing: '0.005em' }],
+        'display-2': ['clamp(28px, 5vw, 46px)', { lineHeight: '1.12' }],
+        'display-3': ['clamp(20px, 3vw, 26px)', { lineHeight: '1.16' }],
+        lead: ['clamp(15px, 2.6vw, 18px)', { lineHeight: '1.6' }],
         body: ['0.9375rem', { lineHeight: '1.6' }],
-        meta: ['0.75rem', { lineHeight: '1.35', letterSpacing: '0.06em' }],
-        micro: ['0.6875rem', { lineHeight: '1.3', letterSpacing: '0.1em' }],
+        meta: ['0.75rem', { lineHeight: '1.4', letterSpacing: '0.16em' }],
+        micro: ['0.6875rem', { lineHeight: '1.35', letterSpacing: '0.18em' }],
       },
       spacing: {
-        gutter: 'clamp(1rem, 4.5vw, 2.5rem)',
-        section: 'clamp(3.25rem, 9vw, 7rem)',
+        gutter: '18px',
+        section: 'clamp(48px, 9vw, 104px)',
       },
       borderRadius: {
-        card: '1rem',
+        card: 'var(--radius-card)',
+        control: 'var(--radius-control)',
         pill: '999px',
       },
       maxWidth: {
-        shell: '78rem',
-        prose: '42rem',
+        shell: '1240px',
+        prose: '46rem',
       },
       boxShadow: {
-        // Restrained cinematic shadows — depth without mush.
-        card: '0 1px 0 0 rgba(255,255,255,0.04) inset, 0 18px 40px -24px rgba(0,0,0,0.9)',
-        lift: '0 1px 0 0 rgba(255,255,255,0.06) inset, 0 32px 70px -30px rgba(0,0,0,0.95)',
-        accent: '0 14px 40px -16px rgba(224,36,47,0.55)',
-        sheet: '0 -24px 60px -20px rgba(0,0,0,0.9)',
-      },
-      backgroundImage: {
-        'metal-sheen':
-          'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.015) 38%, rgba(255,255,255,0) 100%)',
-        'accent-sheen': 'linear-gradient(135deg, #FF4A55 0%, #E0242F 52%, #A8161F 100%)',
-        'fade-bottom': 'linear-gradient(180deg, rgba(7,8,10,0) 0%, rgba(7,8,10,0.85) 62%, #07080A 100%)',
+        card: '0 1px 0 0 rgba(255,255,255,0.03) inset, 0 18px 40px -28px rgba(0,0,0,0.9)',
+        lift: '0 1px 0 0 rgba(255,255,255,0.04) inset, 0 32px 70px -34px rgba(0,0,0,0.95)',
+        // Оранжевое свечение основной кнопки — как в «Керей».
+        accent: '0 8px 30px -12px rgba(255,90,31,0.7)',
+        sheet: '0 -20px 50px -20px rgba(0,0,0,0.85)',
       },
       keyframes: {
-        'reveal-up': {
-          from: { opacity: '0', transform: 'translate3d(0, 18px, 0)' },
-          to: { opacity: '1', transform: 'translate3d(0, 0, 0)' },
-        },
         'slow-zoom': {
           from: { transform: 'scale(1.04)' },
-          to: { transform: 'scale(1.12)' },
+          to: { transform: 'scale(1.1)' },
         },
-        shimmer: {
-          '0%': { transform: 'translateX(-120%)' },
-          '100%': { transform: 'translateX(220%)' },
+        'pulse-dot': {
+          '0%': { boxShadow: '0 0 0 0 rgba(34,197,94,0.5)' },
+          '70%': { boxShadow: '0 0 0 7px rgba(34,197,94,0)' },
+          '100%': { boxShadow: '0 0 0 0 rgba(34,197,94,0)' },
         },
-        'pulse-ring': {
-          '0%': { boxShadow: '0 0 0 0 rgba(47,191,113,0.5)' },
-          '70%': { boxShadow: '0 0 0 7px rgba(47,191,113,0)' },
-          '100%': { boxShadow: '0 0 0 0 rgba(47,191,113,0)' },
-        },
-        'sheet-in': {
-          from: { transform: 'translate3d(0, 100%, 0)' },
-          to: { transform: 'translate3d(0, 0, 0)' },
-        },
-        'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
       },
       animation: {
-        'reveal-up': 'reveal-up 0.62s cubic-bezier(0.22, 1, 0.36, 1) both',
-        'slow-zoom': 'slow-zoom 18s ease-out both',
-        shimmer: 'shimmer 2.6s ease-in-out infinite',
-        'pulse-ring': 'pulse-ring 2.4s ease-out infinite',
-        'sheet-in': 'sheet-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both',
-        'fade-in': 'fade-in 0.24s ease-out both',
+        'slow-zoom': 'slow-zoom 20s ease-out both',
+        'pulse-dot': 'pulse-dot 2.4s ease-out infinite',
       },
     },
   },

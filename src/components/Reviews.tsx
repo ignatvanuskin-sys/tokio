@@ -23,7 +23,7 @@ export function Reviews({ compact = false }: { compact?: boolean }) {
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
             <span className="eyebrow">Отзывы клиентов</span>
-            <h2 id="reviews-heading" className="mt-2 text-display-3 font-extrabold text-white">
+            <h2 id="reviews-heading" className="mt-2 text-display-3 font-semibold text-white">
               {business.rating.value.toFixed(1)}{' '}
               <span className="text-steel-400">из 5</span>
             </h2>

@@ -20,8 +20,10 @@ const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36';
 
 const families = [
-  { key: 'Manrope', query: 'Manrope:wght@400;500;600;700;800' },
-  { key: 'JetBrainsMono', query: 'JetBrains+Mono:wght@400;500;700' },
+  // Display: condensed uppercase headings (matches the Керей visual language).
+  { key: 'Oswald', query: 'Oswald:wght@400;500;600;700' },
+  // Body/UI: Inter, excellent Cyrillic coverage.
+  { key: 'Inter', query: 'Inter:wght@400;500;600;700' },
 ];
 
 // Only these subsets are used by the site (Russian + Kazakh + Latin UI text).

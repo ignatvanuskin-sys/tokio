@@ -70,8 +70,8 @@ export const viewport: Viewport = {
   // Zoom stays available — never lock accessibility away.
   maximumScale: 5,
   themeColor: [
-    { media: '(prefers-color-scheme: dark)', color: '#07080A' },
-    { media: '(prefers-color-scheme: light)', color: '#07080A' },
+    { media: '(prefers-color-scheme: dark)', color: '#0B0C0E' },
+    { media: '(prefers-color-scheme: light)', color: '#0B0C0E' },
   ],
   colorScheme: 'dark',
 };

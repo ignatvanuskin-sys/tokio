@@ -17,7 +17,7 @@ export function ServiceGrid({ featuredOnly = false, headingId = 'services-headin
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-xl">
           <span className="eyebrow">Услуги</span>
-          <h2 id={headingId} className="mt-2 text-display-3 font-extrabold text-white">
+          <h2 id={headingId} className="mt-2 text-display-3 font-semibold text-white">
             {featuredOnly ? 'Что чаще всего делаем' : 'Все услуги сервиса'}
           </h2>
           <p className="mt-2.5 text-[0.9375rem] leading-relaxed text-steel-400">

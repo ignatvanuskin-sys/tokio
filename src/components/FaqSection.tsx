@@ -13,7 +13,7 @@ export function FaqSection({ limit }: { limit?: number }) {
     <section aria-labelledby="faq-heading" className="shell py-12 md:py-20">
       <div className="max-w-xl">
         <span className="eyebrow">Вопросы</span>
-        <h2 id="faq-heading" className="mt-2 text-display-3 font-extrabold text-white">
+        <h2 id="faq-heading" className="mt-2 text-display-3 font-semibold text-white">
           Частые вопросы
         </h2>
         <p className="mt-2.5 text-[0.9375rem] leading-relaxed text-steel-400">

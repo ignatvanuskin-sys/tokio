@@ -113,7 +113,7 @@ export default function ServicesPage() {
             className="shell scroll-mt-24 py-9 md:py-14"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5">
-              <h2 id={`${group.id}-heading`} className="text-display-3 font-extrabold text-white">
+              <h2 id={`${group.id}-heading`} className="text-display-3 font-semibold text-white">
                 {group.label}
               </h2>
               <span className="text-[0.875rem] text-steel-400">{group.blurb}</span>

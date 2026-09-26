@@ -24,7 +24,7 @@ export function LocationBlock() {
         {/* Details ------------------------------------------------------ */}
         <Reveal>
           <span className="eyebrow">Мы находимся</span>
-          <h2 id="location-heading" className="mt-2 text-display-3 font-extrabold text-white">
+          <h2 id="location-heading" className="mt-2 text-display-3 font-semibold text-white">
             {business.city}, {business.address.streetShort}
           </h2>
 
@@ -141,7 +141,7 @@ export function LocationBlock() {
               <svg width="38" height="50" viewBox="0 0 46 60" fill="none">
                 <path
                   d="M23 58C23 58 42 32.5 42 21.5A19 19 0 1 0 4 21.5C4 32.5 23 58 23 58Z"
-                  fill="#E0242F"
+                  fill="#FF5A1F"
                   stroke="#fff"
                   strokeWidth="3"
                 />

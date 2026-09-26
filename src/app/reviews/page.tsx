@@ -32,7 +32,7 @@ export default function ReviewsPage() {
       >
         <div className="mt-6 flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-3 rounded-xl border border-hairline bg-surface px-4 py-3">
-            <span className="text-[1.75rem] font-extrabold leading-none text-white tnum">
+            <span className="text-[1.75rem] font-semibold leading-none text-white tnum">
               {business.rating.value.toFixed(1)}
             </span>
             <span>

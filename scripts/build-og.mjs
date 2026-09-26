@@ -38,18 +38,18 @@ const overlay = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
     <linearGradient id="scrim" x1="0" y1="0" x2="1" y2="0.4">
-      <stop offset="0%" stop-color="#07080A" stop-opacity="0.97"/>
-      <stop offset="46%" stop-color="#07080A" stop-opacity="0.86"/>
-      <stop offset="100%" stop-color="#07080A" stop-opacity="0.55"/>
+      <stop offset="0%" stop-color="#0B0C0E" stop-opacity="0.97"/>
+      <stop offset="46%" stop-color="#0B0C0E" stop-opacity="0.86"/>
+      <stop offset="100%" stop-color="#0B0C0E" stop-opacity="0.55"/>
     </linearGradient>
     <linearGradient id="bottom" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#07080A" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#07080A" stop-opacity="0.92"/>
+      <stop offset="0%" stop-color="#0B0C0E" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0B0C0E" stop-opacity="0.92"/>
     </linearGradient>
     <linearGradient id="seam" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#FF4A55" stop-opacity="0"/>
-      <stop offset="50%" stop-color="#FF4A55" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#E0242F" stop-opacity="0.1"/>
+      <stop offset="0%" stop-color="#FF7A45" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#FF7A45" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#FF5A1F" stop-opacity="0.1"/>
     </linearGradient>
   </defs>
 
@@ -61,7 +61,7 @@ const overlay = `
 
   <!-- brand mark -->
   <rect x="72" y="82" width="34" height="34" rx="8" fill="#13161A" stroke="rgba(255,255,255,0.22)"/>
-  <rect x="83" y="93" width="12" height="12" rx="3" fill="#E0242F"/>
+  <rect x="83" y="93" width="12" height="12" rx="3" fill="#FF5A1F"/>
 
   <text x="122" y="110" font-family="${FONT}" font-size="19" font-weight="bold"
         letter-spacing="4" fill="#8C949D">${escapeXml(SUBTITLE.toUpperCase())}</text>
@@ -79,8 +79,8 @@ const overlay = `
   <text x="178" y="445" font-family="${FONT}" font-size="24" fill="#E8A33D">★★★★★</text>
   <text x="98" y="472" font-family="${FONT}" font-size="15" fill="#8C949D">${escapeXml(RATING_NOTE)}</text>
 
-  <rect x="392" y="400" width="446" height="86" rx="16" fill="rgba(224,36,47,0.14)"
-        stroke="rgba(224,36,47,0.42)"/>
+  <rect x="392" y="400" width="446" height="86" rx="16" fill="rgba(255,90,31,0.14)"
+        stroke="rgba(255,90,31,0.42)"/>
   <text x="416" y="435" font-family="${FONT}" font-size="14" letter-spacing="2.4" fill="#FF7A82">${escapeXml(AWARD.toUpperCase())}</text>
   <text x="416" y="465" font-family="${FONT}" font-size="20" font-weight="bold" fill="#FFFFFF">Номинант · Лучший автосервис 2026</text>
 

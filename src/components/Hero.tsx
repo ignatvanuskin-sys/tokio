@@ -46,7 +46,8 @@ export function Hero({ initialOpen }: { initialOpen: boolean }) {
               'linear-gradient(180deg, rgba(7,8,10,0.92) 0%, rgba(7,8,10,0.62) 26%, rgba(7,8,10,0.78) 62%, #07080A 100%)',
           }}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_15%_10%,rgba(224,36,47,0.16),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_15%_10%,rgba(255,90,31,0.18),transparent_60%)]" />
+        <div className="grid-texture absolute inset-0 opacity-60" />
       </div>
 
       <div className="shell grain relative flex min-h-[calc(100svh-3.5rem)] flex-col justify-end pb-9 pt-14 md:min-h-[min(760px,88svh)] md:justify-center md:pb-20 md:pt-24">
@@ -66,7 +67,7 @@ export function Hero({ initialOpen }: { initialOpen: boolean }) {
           </div>
 
           {/* Who ------------------------------------------------------ */}
-          <h1 className="mt-3 text-display-1 font-extrabold uppercase text-white">
+          <h1 className="mt-3 text-display-1 font-semibold uppercase text-white">
             Токио
           </h1>
           <p className="mt-2 max-w-xl text-lead font-medium text-steel-200">

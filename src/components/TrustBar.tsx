@@ -76,7 +76,7 @@ export function TrustBar() {
             >
               <div className="flex h-full flex-col">
                 <span className="eyebrow">{item.label}</span>
-                <span className="mt-2 block text-[1.5rem] font-extrabold text-white">
+                <span className="mt-2 block text-[1.5rem] font-semibold text-white">
                   {item.value}
                 </span>
                 {item.note && (

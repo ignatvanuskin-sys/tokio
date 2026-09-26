@@ -82,6 +82,24 @@ export const createBookingSchema = z.object({
 
   /** Client-generated UUID that makes retries safe. */
   idempotencyKey: z.string().trim().uuid('Некорректный ключ идемпотентности'),
+
+  /**
+   * Explicit consent to process the personal data supplied above. Required:
+   * without it we have no lawful basis to store a name and phone number.
+   */
+  consent: z.literal(true, {
+    errorMap: () => ({ message: 'Нужно согласие на обработку данных' }),
+  }),
+
+  /**
+   * Anti-bot measures (see the route handler):
+   *  · `trap`      — a honeypot input hidden from humans; bots fill it in.
+   *  · `elapsedMs` — how long the form was open; instant submissions are bots.
+   * Both are optional so that server-to-server probes and the test suite do not
+   * have to fake them, but when present they participate in the decision.
+   */
+  trap: z.string().max(200).optional(),
+  elapsedMs: z.number().int().nonnegative().max(24 * 60 * 60 * 1000).optional(),
 });
 
 export type CreateBookingPayload = z.infer<typeof createBookingSchema>;

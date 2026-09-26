@@ -60,7 +60,7 @@ export function Header({ initialOpen }: { initialOpen: boolean }) {
             <span className="h-2 w-2 rounded-[2px] bg-accent" aria-hidden="true" />
           </span>
           <span className="leading-none">
-            <span className="block text-[1.0625rem] font-extrabold uppercase tracking-[0.16em] text-white">
+            <span className="block text-[1.0625rem] font-semibold uppercase tracking-[0.16em] text-white">
               ТОКИО
             </span>
             <span className="mt-0.5 hidden text-[0.625rem] uppercase tracking-[0.18em] text-steel-400 sm:block">

@@ -45,7 +45,7 @@ export function VisitSteps() {
     <section aria-labelledby="steps-heading" className="shell py-12 md:py-20">
       <div className="max-w-xl">
         <span className="eyebrow">Как это работает</span>
-        <h2 id="steps-heading" className="mt-2 text-display-3 font-extrabold text-white">
+        <h2 id="steps-heading" className="mt-2 text-display-3 font-semibold text-white">
           Как проходит запись
         </h2>
         <p className="mt-2.5 text-[0.9375rem] leading-relaxed text-steel-400">

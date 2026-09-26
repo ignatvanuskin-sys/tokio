@@ -83,7 +83,7 @@ export default async function AdminPage({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <span className="eyebrow">Панель сервиса</span>
-          <h1 className="mt-2 text-display-3 font-extrabold text-white">Заявки с сайта</h1>
+          <h1 className="mt-2 text-display-3 font-semibold text-white">Заявки с сайта</h1>
           <p className="mt-2 text-[0.875rem] text-steel-400">
             {formatDateRuFull(today)} · {label}
             {serviceSlug ? ` · ${services.find((s) => s.slug === serviceSlug)?.title}` : ''}
@@ -143,7 +143,7 @@ export default async function AdminPage({
         ].map((kpi) => (
           <div key={kpi.k} className="card p-4">
             <dt className="text-[0.6875rem] uppercase tracking-wider text-steel-600">{kpi.label}</dt>
-            <dd className="mt-1 text-[1.5rem] font-extrabold leading-none text-white tnum">
+            <dd className="mt-1 text-[1.5rem] font-semibold leading-none text-white tnum">
               {kpi.value}
             </dd>
           </div>

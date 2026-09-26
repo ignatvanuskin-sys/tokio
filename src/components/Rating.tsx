@@ -39,7 +39,7 @@ export function RatingBadge({ compact = false }: { compact?: boolean }) {
   return (
     <div className="inline-flex flex-wrap items-center gap-x-2.5 gap-y-1">
       <span className="inline-flex items-center gap-1.5">
-        <span className="text-[1.0625rem] font-extrabold leading-none text-white tnum">
+        <span className="text-[1.0625rem] font-semibold leading-none text-white tnum">
           {business.rating.value.toFixed(1)}
         </span>
         <Stars value={business.rating.value} />
@@ -48,7 +48,7 @@ export function RatingBadge({ compact = false }: { compact?: boolean }) {
         <span className="tnum">{business.rating.ratingsCount}</span> оценок
         {compact ? '' : ` · ${business.rating.reviewsCount} отзывов`}
       </span>
-      <span className="text-[0.6875rem] uppercase tracking-wider text-steel-600">
+      <span className="text-[0.6875rem] uppercase tracking-wider text-steel-400">
         по данным 2ГИС
       </span>
     </div>

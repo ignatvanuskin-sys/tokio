@@ -21,7 +21,7 @@ export function Footer() {
               <span className="grid h-8 w-8 place-items-center rounded-md border border-hairlineStrong bg-surface">
                 <span className="h-2 w-2 rounded-[2px] bg-accent" aria-hidden="true" />
               </span>
-              <span className="text-[1.0625rem] font-extrabold uppercase tracking-[0.16em] text-white">
+              <span className="text-[1.0625rem] font-semibold uppercase tracking-[0.16em] text-white">
                 ТОКИО
               </span>
             </div>

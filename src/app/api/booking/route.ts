@@ -70,6 +70,27 @@ export async function POST(req: Request) {
   }
 
   const input = parsed.data;
+
+  /**
+   * Anti-bot checks. Both signals are reported the same neutral way as a
+   * validation failure: a bot learns nothing about which trap it tripped.
+   */
+  const looksLikeBot =
+    (input.trap !== undefined && input.trap.trim() !== '') ||
+    (input.elapsedMs !== undefined && input.elapsedMs < 1200);
+
+  if (looksLikeBot) {
+    console.warn('[api/booking] rejected suspected bot submission');
+    return NextResponse.json(
+      {
+        ok: false,
+        code: 'validation',
+        message: 'Заявку не удалось принять. Если это ошибка — позвоните нам или напишите в WhatsApp.',
+      },
+      { status: 400 },
+    );
+  }
+
   const service = getService(input.serviceSlug);
   if (!service) {
     return NextResponse.json(

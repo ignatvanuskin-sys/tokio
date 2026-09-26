@@ -16,7 +16,6 @@ import { Reviews } from '@/components/Reviews';
 import { FaqSection } from '@/components/FaqSection';
 import { LocationBlock } from '@/components/LocationBlock';
 import { CtaBand } from '@/components/CtaBand';
-import { StickyCta } from '@/components/StickyCta';
 import { Reveal } from '@/components/Reveal';
 import { ActionLink } from '@/components/actions';
 
@@ -31,8 +30,9 @@ export const metadata: Metadata = {
  *   кто мы → доверие → услуги → почему → как записаться → фото → отзывы
  *   → запись → вопросы → где мы → запись
  *
- * Two "Записаться" bands plus the hero CTA, and never a permanent overlay
- * covering content (StickyCta is a dismissible pill, mobile only).
+ * Two "Записаться" bands plus the hero CTA. There is deliberately NO fixed
+ * bottom action bar: on a phone it covers content and hides the very proof the
+ * visitor came for. Each band carries its own primary action instead.
  */
 export default function HomePage() {
   const initialOpen = isOpenNow(new Date(), scheduleConfig.timeZone);
@@ -62,7 +62,7 @@ export default function HomePage() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-xl">
             <span className="eyebrow">Фотографии</span>
-            <h2 id="gallery-heading" className="mt-2 text-display-3 font-extrabold text-white">
+            <h2 id="gallery-heading" className="mt-2 text-display-3 font-semibold text-white">
               Как выглядит сервис изнутри
             </h2>
             <p className="mt-2.5 text-[0.9375rem] leading-relaxed text-steel-400">
@@ -160,7 +160,6 @@ export default function HomePage() {
         </Reveal>
       </section>
 
-      <StickyCta />
     </>
   );
 }

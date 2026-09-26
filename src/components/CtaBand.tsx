@@ -62,7 +62,7 @@ export function CtaBand({
       <div className="shell py-11 md:py-16">
         <Reveal className="max-w-xl">
           <span className="eyebrow">{eyebrow}</span>
-          <h2 className="mt-2 text-display-2 font-extrabold text-white">{title}</h2>
+          <h2 className="mt-2 text-display-2 font-semibold text-white">{title}</h2>
           <p className="mt-3 text-[0.9375rem] leading-relaxed text-steel-200 md:text-base">
             {body}
           </p>

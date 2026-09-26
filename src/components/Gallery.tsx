@@ -132,8 +132,9 @@ function GalleryTile({
   className?: string;
   sizes: string;
 }) {
-  const [loaded, setLoaded] = useState(false);
+
   const { width, height } = intrinsicSize(item.id, 960);
+
 
   return (
     <Reveal as="li" delay={Math.min(index, 6) * 40} className={className}>
@@ -154,10 +155,8 @@ function GalleryTile({
             loading="lazy"
             decoding="async"
             draggable={false}
-            onLoad={() => setLoaded(true)}
-            className={`h-full w-full object-cover transition duration-700 ${
-              loaded ? 'scale-100 opacity-100 blur-0' : 'scale-105 opacity-0 blur-md'
-            }`}
+            // No JS-driven fade: a cached image could stay at opacity 0 forever.
+            className="h-full w-full object-cover"
           />
         </span>
         <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/90 to-transparent p-3 pt-8">
