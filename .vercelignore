@@ -1,0 +1,17 @@
+# Never upload these to Vercel.
+#
+# .research/ holds raw 2GIS extractions, photo originals, QA screenshots and the
+# reference-project clone — megabytes of material that is not part of the build.
+# data/ holds the booking store, which is real customer personal data and must
+# never travel inside a deployment artifact.
+.research/
+data/
+media-output/
+.backup/
+coverage/
+*.log
+
+# Platform-managed.
+.next/
+node_modules/
+.vercel/

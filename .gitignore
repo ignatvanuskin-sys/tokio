@@ -31,3 +31,9 @@ Thumbs.db
 *.log
 next-env.d.ts
 tsconfig.tsbuildinfo
+
+# research/scratch: raw extractions, photo originals, QA artefacts
+.research/
+
+# vercel link metadata
+.vercel/
