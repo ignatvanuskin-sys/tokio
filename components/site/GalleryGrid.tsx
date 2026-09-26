@@ -36,15 +36,20 @@ const TILES: { src: string; span: string }[] = [
   { src: '/images/photos/p03.webp', span: 'col-span-1 aspect-square lg:col-span-4 lg:aspect-[3/2]' },
   // Работа снизу на подъёмнике — вертикальный кадр в асимметричной паре.
   { src: '/images/photos/p01.webp', span: 'col-span-1 aspect-square lg:col-span-2 lg:aspect-[3/4]' },
-  // Деталь: расходники в руках мастера. На телефоне закрывает ряд широким кадром.
+  // Приёмка: машина приехала на эвакуаторе. Кадр горизонтальный (16:9),
+  // поэтому широкий кроп на телефоне почти ничего не срезает.
+  //
+  // Раньше на этом месте стоял вертикальный кадр с масляным фильтром: в широком
+  // кроп-боксе он оставлял половину кадра пустым размытым фоном. Такой кадр
+  // хорошо работает квадратом, поэтому он переехал в десктопный ряд.
   {
-    src: '/images/photos/p14.webp',
+    src: '/images/photos/p04.webp',
     span: 'col-span-2 aspect-[16/10] lg:col-span-2 lg:aspect-square',
   },
+  // Только десктоп: деталь — расходники в руках мастера.
+  { src: '/images/photos/p14.webp', span: 'hidden lg:block lg:col-span-2 lg:aspect-square' },
   // Только десктоп: рабочая зона с инструментом.
   { src: '/images/photos/p12.webp', span: 'hidden lg:block lg:col-span-2 lg:aspect-square' },
-  // Только десктоп: автомобиль на двухстоечном подъёмнике.
-  { src: '/images/photos/p13.webp', span: 'hidden lg:block lg:col-span-2 lg:aspect-square' },
 ];
 
 export default function GalleryGrid() {
