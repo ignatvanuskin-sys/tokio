@@ -1,0 +1,351 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Base — mobile first. Everything below is tuned for a 320–430px viewport
+   first and only then widened.
+   ========================================================================== */
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    /* Safe-area insets so nothing hides behind notches or gesture bars. */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * {
+    @apply border-hairline;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    /* Header height + a little breathing room for in-page anchors. */
+    scroll-padding-top: 5.5rem;
+    background-color: theme('colors.ink');
+  }
+
+  body {
+    @apply bg-ink text-steel-50 font-sans antialiased;
+    /* Belt and braces against horizontal scroll on small screens. */
+    overflow-x: hidden;
+    min-height: 100dvh;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'kern' 1, 'liga' 1;
+  }
+
+  /* No accidental horizontal overflow from long unbreakable strings. */
+  h1, h2, h3, h4, p, li, span, a, dd, dt, figcaption {
+    overflow-wrap: anywhere;
+  }
+
+  /* Visible, consistent focus for keyboard users only. */
+  :focus-visible {
+    outline: 2px solid theme('colors.accent.bright');
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: theme('colors.accent.DEFAULT');
+    color: #fff;
+  }
+
+  /* Numerals in tables and slot times must not jump around. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  input, select, textarea, button {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* iOS zooms the page when a control's font-size is under 16px.
+     Every form control is therefore at least 16px on small screens. */
+  input, select, textarea {
+    font-size: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    input, select, textarea {
+      font-size: 0.9375rem;
+    }
+  }
+
+  ::placeholder {
+    color: theme('colors.steel.600');
+  }
+
+  /* Slim scrollbars on desktop; invisible on touch. */
+  @media (pointer: fine) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: theme('colors.steel.800') transparent;
+    }
+  }
+}
+
+/* ==========================================================================
+   Components
+   ========================================================================== */
+
+@layer components {
+  .shell {
+    @apply mx-auto w-full max-w-shell px-gutter;
+  }
+
+  /* --- Buttons ---------------------------------------------------------- */
+
+  .btn {
+    @apply inline-flex min-h-[48px] items-center justify-center gap-2 rounded-pill px-5
+           text-[0.9375rem] font-semibold leading-none transition
+           duration-200 ease-out select-none;
+    /* 48px min height keeps every primary action comfortably tappable. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btn:active {
+    transform: translateY(0.5px) scale(0.995);
+  }
+
+  .btn-primary {
+    @apply bg-accent-sheen text-white shadow-accent;
+  }
+
+  .btn-primary:hover {
+    filter: brightness(1.08);
+  }
+
+  .btn-secondary {
+    @apply border border-hairlineStrong bg-surface-raised text-steel-50;
+  }
+
+  .btn-secondary:hover {
+    @apply border-white/25 bg-surface;
+  }
+
+  .btn-ghost {
+    @apply text-steel-200;
+  }
+
+  .btn-ghost:hover {
+    @apply text-white;
+  }
+
+  .btn-block {
+    @apply w-full;
+  }
+
+  .btn-sm {
+    @apply min-h-[42px] px-4 text-[0.875rem];
+  }
+
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  /* --- Surfaces --------------------------------------------------------- */
+
+  .card {
+    @apply rounded-card border border-hairline bg-surface shadow-card;
+  }
+
+  .card-raised {
+    @apply rounded-card border border-hairline bg-surface-raised shadow-lift;
+  }
+
+  /* Hairline metallic top edge — the "precision" signature of the brand. */
+  .metal-top {
+    position: relative;
+  }
+
+  .metal-top::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.28) 22%,
+      rgba(255, 255, 255, 0.06) 60%,
+      transparent
+    );
+    pointer-events: none;
+  }
+
+  /* --- Typography helpers ----------------------------------------------- */
+
+  .eyebrow {
+    @apply font-mono text-micro uppercase text-steel-400;
+  }
+
+  .section-title {
+    @apply text-display-2 font-extrabold text-white;
+  }
+
+  .lead {
+    @apply text-lead text-steel-200;
+  }
+
+  .muted {
+    @apply text-steel-400;
+  }
+
+  /* --- Form controls ---------------------------------------------------- */
+
+  .field {
+    @apply w-full min-h-[52px] rounded-xl border border-hairline bg-surface-sunken px-4
+           text-steel-50 transition placeholder:text-steel-600;
+  }
+
+  .field:focus {
+    @apply border-accent/60 outline-none;
+    box-shadow: 0 0 0 3px rgba(224, 36, 47, 0.16);
+  }
+
+  .field[aria-invalid='true'] {
+    @apply border-accent/70;
+  }
+
+  .field-label {
+    @apply mb-1.5 block text-[0.8125rem] font-medium text-steel-200;
+  }
+
+  .field-error {
+    @apply mt-1.5 flex items-start gap-1.5 text-[0.8125rem] text-accent-bright;
+  }
+
+  .field-hint {
+    @apply mt-1.5 text-[0.8125rem] text-steel-400;
+  }
+
+  /* --- Chips / tags ----------------------------------------------------- */
+
+  .chip {
+    @apply inline-flex min-h-[38px] items-center gap-1.5 rounded-pill border border-hairline
+           bg-surface px-3 text-[0.8125rem] font-medium text-steel-200 transition;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .chip[aria-pressed='true'],
+  .chip[data-active='true'] {
+    @apply border-accent/70 bg-accent-wash text-white;
+  }
+
+  /* --- Misc ------------------------------------------------------------- */
+
+  .hairline {
+    @apply h-px w-full bg-hairline;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Full-bleed horizontal rail on mobile, grid on desktop. */
+  .rail {
+    @apply flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 no-scrollbar;
+    scroll-padding-inline: theme('spacing.gutter');
+  }
+
+  .rail > * {
+    @apply snap-start;
+  }
+
+  .skip-link {
+    @apply absolute left-3 top-3 z-[100] -translate-y-[150%] rounded-lg bg-accent px-4 py-2
+           text-sm font-semibold text-white transition;
+  }
+
+  .skip-link:focus {
+    @apply translate-y-0;
+  }
+}
+
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: calc(var(--safe-bottom) + 1rem);
+  }
+
+  .safe-top {
+    padding-top: var(--safe-top);
+  }
+
+  /* Applied by the Reveal component before it scrolls into view. */
+  .reveal-hidden {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+
+  .reveal-shown {
+    animation: reveal-up 0.62s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  .grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.16;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  }
+}
+
+/* ==========================================================================
+   Accessibility — motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal-hidden {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Print: keep the address and phone legible on paper. */
+@media print {
+  .btn,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+}
