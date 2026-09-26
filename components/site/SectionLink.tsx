@@ -27,15 +27,40 @@ function headerOffset(): number {
 }
 
 /** Scrolls the element into view, accounting for the sticky header. */
-export function scrollToSection(id: string): boolean {
+export function scrollToSection(id: string, behavior?: ScrollBehavior): boolean {
   const element = document.getElementById(id);
   if (!element) return false;
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const top = element.getBoundingClientRect().top + window.scrollY - headerOffset();
+  const top = Math.max(element.getBoundingClientRect().top + window.scrollY - headerOffset(), 0);
 
-  window.scrollTo({ top: Math.max(top, 0), behavior: reduceMotion ? 'auto' : 'smooth' });
+  window.scrollTo({ top, behavior: behavior ?? (reduceMotion ? 'auto' : 'smooth') });
   return true;
+}
+
+/**
+ * Smooth scrolling over a long distance can be interrupted, and lazy images
+ * loading further down the page shift the target while the animation runs — QA
+ * measured the page holding ~300 px short for about a second before snapping.
+ * So after the animation we re-measure once and, only if we are meaningfully
+ * off, finish the move instantly.
+ */
+function settle(id: string, delays: number[]): void {
+  for (const delay of delays) {
+    window.setTimeout(() => {
+      const element = document.getElementById(id);
+      if (!element) return;
+      const target = Math.max(
+        element.getBoundingClientRect().top + window.scrollY - headerOffset(),
+        0,
+      );
+      // 24px tolerance: below that the difference is imperceptible and snapping
+      // would fight a still-running smooth scroll.
+      if (Math.abs(window.scrollY - target) > 24) {
+        window.scrollTo({ top: target, behavior: 'auto' });
+      }
+    }, delay);
+  }
 }
 
 type Props = {
@@ -66,6 +91,7 @@ export default function SectionLink({ href, className, children, onNavigate, ...
     // а от неё зависит смещение прокрутки.
     window.setTimeout(() => {
       if (!scrollToSection(id)) return;
+      settle(id, [520, 1100, 1900]);
       // replaceState, а не pushState: Next не должен считать это навигацией,
       // но адрес и позиция прокрутки обязаны совпадать.
       window.history.replaceState(null, '', hash);

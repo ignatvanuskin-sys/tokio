@@ -27,10 +27,17 @@ export default function HashScroller() {
 
     if (!window.location.hash) return;
 
+    // Repeated passes, and the last ones snap instead of animating: fonts and
+    // lazy images shift section offsets after first paint, and a long smooth
+    // scroll can settle short.
     const timers = [
       window.setTimeout(scrollToHash, 0),
       window.setTimeout(scrollToHash, 260),
       window.setTimeout(scrollToHash, 800),
+      window.setTimeout(() => {
+        const id = window.location.hash.replace(/^#/, '');
+        if (id) scrollToSection(id, 'auto');
+      }, 1500),
     ];
 
     return () => timers.forEach((timer) => window.clearTimeout(timer));
