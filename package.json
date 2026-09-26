@@ -2,41 +2,39 @@
   "name": "tokyo-autoservice",
   "version": "1.0.0",
   "private": true,
-  "description": "Production-ready website + digital front desk for the TOKYO auto service (Kokshetau, Kazakhstan).",
-  "engines": {
-    "node": ">=20.11"
-  },
+  "description": "Токио — автосервис в Кокшетау. Продающий сайт с онлайн-записью и панелью заявок.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "db:migrate": "node scripts/db-migrate.mjs",
-    "db:seed": "node scripts/db-seed.mjs",
-    "images": "node scripts/optimize-images.mjs",
-    "fonts": "node scripts/fetch-fonts.mjs",
-    "check": "npm run typecheck && npm run test && node scripts/verify-seo.mjs"
+    "check": "npm run lint && npm run typecheck && npm run test",
+    "smoke": "powershell -ExecutionPolicy Bypass -File scripts/run-smoke.ps1",
+    "lighthouse": "powershell -ExecutionPolicy Bypass -File scripts/run-lighthouse.ps1",
+    "make-images": "powershell -ExecutionPolicy Bypass -File scripts/make-images.ps1",
+    "demo": "powershell -ExecutionPolicy Bypass -File scripts/demo.ps1",
+    "reset": "tsx scripts/reset.ts",
+    "env:init": "node scripts/init-env.mjs"
   },
   "dependencies": {
-    "next": "15.5.26",
-    "pg": "8.13.1",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "zod": "3.24.1"
+    "lucide-react": "^1.47.0",
+    "next": "^16.3.6",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
-    "@types/node": "22.10.2",
-    "@types/pg": "8.11.10",
-    "@types/react": "19.0.2",
-    "@types/react-dom": "19.0.2",
-    "autoprefixer": "10.4.20",
-    "postcss": "8.4.49",
-    "sharp": "0.33.5",
-    "tailwindcss": "3.4.17",
-    "typescript": "5.7.2",
-    "vitest": "2.1.8"
+    "@eslint/eslintrc": "^3.3.7",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.6",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.1"
   }
 }

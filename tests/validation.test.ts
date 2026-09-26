@@ -1,110 +1,108 @@
 import { describe, expect, it } from 'vitest';
-import { createBookingSchema, fieldErrors } from '@/lib/booking/validation';
-import { addDays, venueDate } from '@/lib/time';
+import { normalizePhone, formatPhone, maskPhoneInput, waDigits, maskPhoneForLog } from '@/lib/phone';
+import { looksLikeBot, parseBookingPayload, validateBooking, validateField, type BookingFormValues } from '@/lib/validation';
+import { addDays, todayInTz } from '@/lib/format';
 
-const today = venueDate();
-const tomorrow = addDays(today, 1);
+const TODAY = todayInTz();
 
-function payload(overrides: Record<string, unknown> = {}) {
+function values(overrides: Partial<BookingFormValues> = {}): BookingFormValues {
   return {
-    serviceSlug: 'razval-shozhdenie',
-    slotDate: tomorrow,
-    slotTime: '14:00',
-    name: 'Иван Петров',
-    phone: '+7 778 998 88 77',
-    consent: true,
-    idempotencyKey: crypto.randomUUID(),
+    serviceSlug: 'suspension',
+    date: addDays(TODAY, 2),
+    time: '11:00',
+    carBrand: 'Toyota',
+    carModel: 'Camry',
+    carYear: '2012',
+    carPlate: '123ABC02',
+    name: 'Асхат',
+    phone: '+7 (705) 206-21-64',
+    comment: 'Стук спереди справа',
     ...overrides,
   };
 }
 
-describe('booking payload validation', () => {
-  it('accepts a minimal valid payload and normalises optionals to null', () => {
-    const res = createBookingSchema.safeParse(payload());
-    expect(res.success).toBe(true);
-    if (res.success) {
-      expect(res.data.vehicleMake).toBeNull();
-      expect(res.data.vehicleModel).toBeNull();
-      expect(res.data.vehicleYear).toBeNull();
-      expect(res.data.comment).toBeNull();
+describe('телефон', () => {
+  it('приводит разные записи одного номера к одному виду', () => {
+    for (const variant of ['8 705 206 21 64', '87052062164', '+7 705 206 21 64', '7 (705) 206-21-64', '7052062164']) {
+      expect(normalizePhone(variant), variant).toBe('+77052062164');
     }
   });
 
-  it('rejects an unknown service slug', () => {
-    const res = createBookingSchema.safeParse(payload({ serviceSlug: 'free-money' }));
-    expect(res.success).toBe(false);
-    if (!res.success) expect(fieldErrors(res.error).serviceSlug).toBeTruthy();
+  it('принимает российские мобильные', () => {
+    expect(normalizePhone('+7 999 123 45 67')).toBe('+79991234567');
   });
 
-  it('rejects a slot time that the venue does not offer', () => {
-    for (const bad of ['08:00', '20:00', '23:30', '9:00', 'abc']) {
-      expect(createBookingSchema.safeParse(payload({ slotTime: bad })).success).toBe(false);
+  it('отклоняет мусор', () => {
+    for (const junk of ['', '   ', 'abc', '12345', '+1 202 555 0147', '0000000000', '123456789012345678']) {
+      expect(normalizePhone(junk), junk).toBeNull();
     }
   });
 
-  it('accepts every real slot time', () => {
-    for (const t of ['09:00', '13:00', '19:00']) {
-      expect(createBookingSchema.safeParse(payload({ slotTime: t })).success).toBe(true);
-    }
+  it('форматирует и маскирует', () => {
+    expect(formatPhone('+77052062164')).toBe('+7 705 206 21 64');
+    expect(waDigits('+77052062164')).toBe('77052062164');
+    expect(maskPhoneForLog('+77052062164')).toBe('+7705***2164');
+    expect(maskPhoneInput('8705206')).toBe('+7 (705) 206');
   });
+});
 
-  it('rejects dates in the past and beyond the horizon', () => {
-    expect(createBookingSchema.safeParse(payload({ slotDate: '2020-01-01' })).success).toBe(false);
-    expect(createBookingSchema.safeParse(payload({ slotDate: addDays(today, 400) })).success).toBe(
-      false,
+describe('валидация полей', () => {
+  it('не пропускает пустые обязательные поля', () => {
+    expect(validateField('serviceSlug', values({ serviceSlug: '' }))).toBe('Выберите услугу');
+    expect(validateField('carBrand', values({ carBrand: '' }))).toBe('Укажите марку автомобиля');
+    expect(validateField('name', values({ name: 'A' }))).toBe('Как к вам обращаться?');
+    expect(validateField('phone', values({ phone: '12345' }))).toBe(
+      'Телефон в формате +7 705 206 21 64',
     );
   });
 
-  it('rejects malformed dates', () => {
-    for (const bad of ['26.09.2026', '2026-9-26', 'tomorrow', '']) {
-      expect(createBookingSchema.safeParse(payload({ slotDate: bad })).success).toBe(false);
-    }
+  it('не требует необязательные поля', () => {
+    expect(validateField('carYear', values({ carYear: '' }))).toBeUndefined();
+    expect(validateField('carPlate', values({ carPlate: '' }))).toBeUndefined();
+    expect(validateField('comment', values({ comment: '' }))).toBeUndefined();
   });
 
-  it('rejects bad phone numbers', () => {
-    for (const bad of ['', '123', 'не телефон', '+1 415 555 2671', '0000000000']) {
-      const res = createBookingSchema.safeParse(payload({ phone: bad }));
-      expect(res.success).toBe(false);
-      if (!res.success) expect(fieldErrors(res.error).phone).toBeTruthy();
-    }
+  it('проверяет формат года и длину комментария', () => {
+    expect(validateField('carYear', values({ carYear: '20' }))).toBe('Год — четыре цифры');
+    expect(validateField('carYear', values({ carYear: '1200' }))).toBe('Проверьте год');
+    expect(validateField('comment', values({ comment: 'я'.repeat(501) }))).toBe('Не больше 500 символов');
   });
 
-  it('rejects nonsense names and control characters', () => {
-    expect(createBookingSchema.safeParse(payload({ name: 'A' })).success).toBe(false);
-    expect(createBookingSchema.safeParse(payload({ name: 'x'.repeat(200) })).success).toBe(false);
+  it('требует согласие на обработку данных', () => {
+    expect(Object.keys(validateBooking(values(), true))).toHaveLength(0);
+    expect(validateBooking(values(), false).consent).toBe('Нужно согласие на обработку данных');
+  });
+});
+
+describe('разбор запроса на сервере', () => {
+  it('нормализует телефон и обрезает лишнее', () => {
+    const result = parseBookingPayload({ ...values(), consent: true });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.phone).toBe('+77052062164');
+    expect(result.data.utm).toEqual({ source: undefined, medium: undefined, campaign: undefined });
   });
 
-  it('coerces and bounds the vehicle year', () => {
-    const ok = createBookingSchema.safeParse(payload({ vehicleYear: '2014' }));
-    expect(ok.success).toBe(true);
-    if (ok.success) expect(ok.data.vehicleYear).toBe(2014);
-
-    expect(createBookingSchema.safeParse(payload({ vehicleYear: '1200' })).success).toBe(false);
-    expect(createBookingSchema.safeParse(payload({ vehicleYear: '99999' })).success).toBe(false);
+  it('возвращает ошибки по полям', () => {
+    const result = parseBookingPayload({ ...values({ phone: 'нет', name: '' }), consent: true });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors.phone).toBeDefined();
+    expect(result.errors.name).toBeDefined();
   });
 
-  it('caps the comment length', () => {
-    expect(createBookingSchema.safeParse(payload({ comment: 'x'.repeat(601) })).success).toBe(false);
-    expect(createBookingSchema.safeParse(payload({ comment: 'Стучит справа' })).success).toBe(true);
+  it('требует согласие', () => {
+    const result = parseBookingPayload({ ...values(), consent: false });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.errors.consent).toBeDefined();
   });
 
-  it('requires explicit consent to process personal data', () => {
-    expect(createBookingSchema.safeParse(payload({ consent: false })).success).toBe(false);
-    expect(createBookingSchema.safeParse(payload({ consent: true })).success).toBe(true);
-  });
-
-  it('accepts the anti-bot fields and leaves them optional', () => {
-    expect(createBookingSchema.safeParse(payload()).success).toBe(true);
-    const withSignals = createBookingSchema.safeParse(
-      payload({ trap: '', elapsedMs: 5400 }),
-    );
-    expect(withSignals.success).toBe(true);
-  });
-
-  it('requires a UUID idempotency key', () => {
-    expect(createBookingSchema.safeParse(payload({ idempotencyKey: 'abc' })).success).toBe(false);
-    expect(createBookingSchema.safeParse(payload({ idempotencyKey: crypto.randomUUID() })).success).toBe(
-      true,
-    );
+  it('распознаёт бота по скрытому полю и скорости отправки', () => {
+    const result = parseBookingPayload({ ...values(), consent: true, trap: 'www.spam.kz' });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(looksLikeBot(result.data, 9000)).toBe(true);
+    expect(looksLikeBot({ ...result.data, trap: '' }, 500)).toBe(true);
+    expect(looksLikeBot({ ...result.data, trap: '' }, 9000)).toBe(false);
   });
 });

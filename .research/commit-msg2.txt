@@ -1,0 +1,53 @@
+feat(design): retheme to the «Керей» visual language + rebuild booking form
+
+Design system now matches the reference project: graphite surfaces, a single
+ORANGE accent (#FF5A1F) instead of the previous red, condensed uppercase
+headings in Oswald, Inter for UI, 10/14px control and card radii, hairline
+metal edges and a technical grid texture.
+
+Design
+- ported the token set onto the existing class names, so every component
+  inherited the new look: bg #0B0C0E, surfaces #131518/#1A1D21, lines
+  #272C32/#3A4149, text ramp #F4F5F6 → #C9CFD6 → #98A0AA → #6A727C
+- Oswald + Inter are self-hosted (woff2, latin/cyrillic/cyrillic-ext), so the
+  build still needs no network and there is no third-party font request
+- buttons are 52px-tall rounded rectangles with dark text on orange; cards use
+  the 14px radius; eyebrows are orange with a leading rule
+- headings are weight 600 (Oswald ships 400–700; an 800 would be synthesised
+  and looks wrong in a condensed face) — codemod applied across components
+- regenerated the social preview image and the map pin in the new accent
+
+Booking form — rebuilt as a 5-step wizard matching the reference
+- услуга → автомобиль → дата → время → контакты
+- sticky step header with "Шаг N из 5" and a segmented progress bar; sticky
+  two-button footer so the primary action stays under the thumb on mobile
+- step 1 lists services with a per-direction icon and the honest price note
+- step 2 collects car make/model/year plus a free-text symptom, all optional
+- step 3 is a horizontal rail of date cards (weekday, day number, adjacency)
+- step 4 groups slots under Утро / День / Вечер and greys out taken ones
+- step 5 shows a summary, then name, phone and an explicit consent checkbox
+- success screen states the master confirms by phone — no false auto-confirm
+- added a honeypot field and a submit-timing check; the server now requires
+  explicit consent and rejects suspected bots
+- removed the fixed bottom CTA bar entirely: on a phone it covered content,
+  and each conversion band already carries its own primary action
+
+Fixes found by browser QA during this change
+- React error #300: a useMemo sat after an early return in the wizard, so the
+  render that produced a successful booking threw a hooks-order violation and
+  crashed the client. Hook moved above the early return.
+- gallery thumbnails were permanently invisible: the tiles faded in from
+  opacity 0 driven by React state, and a cached image fires its load event
+  before React attaches onLoad, so all 17 stayed hidden while reporting
+  complete: true. The JS-driven fade is gone; tiles are always visible.
+- raised the contrast of the "по данным 2ГИС" caption
+
+Verification
+- typecheck clean, 68 unit tests pass (validation tests extended for the new
+  consent requirement and the anti-bot fields)
+- build passes: 27 routes
+- browser QA at 390x844 and 1440x900: orange accent and condensed uppercase
+  confirmed on home, booking, gallery and services; no horizontal overflow;
+  no console errors; 17/17 gallery tiles render; the 5-step flow completes and
+  reaches the success screen with POST /api/booking -> 201 and the booking
+  persisted in the store

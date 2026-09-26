@@ -1,0 +1,1 @@
+{ "meta": { "code": 403, "error": { "message": "Authorization error (key is blocked, please contact api@2gis.ru)", "type": "apiKeyIsBlocked" }, "api_version":"2.0.3686940", "issue_date": "20190201" } }

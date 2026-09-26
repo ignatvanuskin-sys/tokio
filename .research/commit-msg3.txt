@@ -1,0 +1,61 @@
+feat: «Токио» site built on the Керей codebase with real 2GIS content
+
+Replaces the previous implementation with a copy of the Керей project
+(kerey.vercel.app) with all content swapped for автосервис «Токио»
+(Кокшетау, ул. Толеу Сулейменова, 25а). The design, layout, components,
+booking wizard, storage layer, admin panel and Telegram notifications are the
+reference project's own — only the content and imagery changed.
+
+Content layer (content/)
+- business.ts — real 2GIS card facts (firm 70000001056265130, captured
+  2026-09-26): rating 4.8 / 332 ratings / 166 reviews, daily 09:00–20:00,
+  +7 778 998 88 77, WhatsApp, Instagram, geo, 15 brands, 5 payment methods,
+  features, and the confirmed 2GIS Awards 2026 nomination
+- services.ts — 16 entries derived strictly from the card's rubrics and
+  «Услуги» list (диагностика, развал-схождение, ходовая, пневмоподвеска,
+  масло/ТО, двигатель, инжекторы, АКПП/МКПП, тормоза, шиномонтаж, диски,
+  электроника, климат, порошковая окраска, аренда тёплого бокса)
+- gallery.ts — the 17 real photographs from the company's 2GIS gallery,
+  each caption describing what is actually in the frame
+- reviews.ts — 9 real reviews pulled from the public 2GIS reviews API,
+  stored verbatim with the authors' display names, plus the full rating
+  distribution for the record
+- faq.ts — 12 answers grounded in published facts only
+
+Images
+- 17 photos optimised to WebP and installed in public/images/photos/
+- hero.webp / hero-mobile.webp from real workshop frames
+- regenerated og.jpg (1200x630) with the Токио data
+- removed all 8 demo stock images from the source project
+
+Prices: the 2GIS «Цены» tab contains only «Цена не указана», so every service
+carries priceFrom: null and the UI shows «Стоимость уточняется» — no invented
+numbers anywhere.
+
+Bug fixes found while retargeting
+- The booking date step requested GET /api/availability with no ?service= and
+  the route fell back to a hardcoded slug 'car-service'. That slug only existed
+  in the source project, so on «Токио» findService() failed, the route
+  answered 422 and the wizard showed «Свободных дней не нашлось» — the booking
+  flow was dead at step 3. Fixed on both sides: the wizard now sends the
+  selected service (the day list depends on the service duration), and the
+  route falls back to the first catalogue entry instead of a magic string, so
+  renaming the catalogue can never silently kill the calendar again.
+- Made the 2GIS Awards nomination visible: OWNER_INPUT.awards existed in the
+  content contract but the UI never rendered it (it was null in the source
+  project). It is now a trust card, worded «номинант» — not a win.
+- Two places still quoted the source project's opening hours (08:30–21:00)
+  instead of 09:00–20:00; one now derives from BUSINESS.hours.
+- The About section produced «в Кокшетауе»; corrected to «в Кокшетау».
+- Rewrote tests/booking.test.ts to be schedule-agnostic: it hardcoded one date
+  for every time-sensitive case and Керей's service slugs, so with Токио's
+  per-service durations (45–180 min) slots legitimately overlapped and the
+  suite failed for the wrong reason. Each case now gets its own date and picks
+  times from the real grid.
+
+Verification
+- typecheck clean; 39 tests pass; production build succeeds (8 static routes)
+- browser QA at 360x844 and desktop: no horizontal overflow, no overlaps, no
+  console errors, zero occurrences of «Керей» / «автокомпалекс» /
+  «Уалиханова» / «Daewoo» / «Mercedes» / «запчасти для иномарок» / «14 фото»
+  on /, /booking or /privacy; 17 real photos present in the DOM

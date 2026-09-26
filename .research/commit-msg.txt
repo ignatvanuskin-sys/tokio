@@ -1,0 +1,52 @@
+feat: production-ready website + booking desk for TOKYO auto service
+
+Mobile-first Next.js 15 site and online booking for автосервис «Токио»
+(Kokshetau, ул. Толеу Сулейменова, 25а). All business data, photographs and
+reviews come from the company's 2GIS card (firm 70000001056265130) — nothing
+is invented, and no prices are shown because 2GIS publishes none.
+
+Real 2GIS data baked in
+- 4.8 rating / 332 ratings / 166 reviews, 2GIS Awards 2026 nomination
+- hours (daily 09:00–20:00), phone, WhatsApp, Instagram, geo, address
+- 15 services mapped 1:1 to the published service and catalogue lists
+- 17 real photographs (responsive WebP + LQIP), 8 verbatim customer reviews
+- static location map rendered from 2GIS tiles at the branch coordinates
+
+Site
+- 27 routes: home, service catalogue, 15 detail pages, gallery, reviews, FAQ,
+  contacts, privacy, booking, admin, 404, sitemap, robots
+- design system: dark graphite, one accent, hairline borders, reduced-motion aware
+- accessibility: semantic landmarks, 44px+ targets, visible focus, keyboard
+  dialogs, labelled forms, no horizontal overflow from 320px up
+
+Booking
+- 6-step wizard: service → vehicle → date → time → contact → confirm
+- server-authoritative slots; KZ phone mask that is paste-safe
+- concurrency guard: atomic per-slot reservation, so two clients racing for one
+  slot produce exactly one booking and a clear 409 for the loser
+- idempotency key makes double clicks and retries safe
+- explicit offline / slot-taken / server-down / invalid-phone error states
+- success screen states the master confirms by phone — no false auto-confirmation
+
+Backend, data, security
+- PostgreSQL store + demo file store behind one interface; a production build
+  refuses to silently fall back to the demo backend
+- SQL schema: customers, vehicles, services, working_hours, time_off,
+  schedule_slots, bookings, booking_events + audit triggers and a board view
+- migration and seed runners (seed creates reference data only, never fake bookings)
+- zod validation, origin checks, per-IP rate limiting, timing-safe admin password
+- HMAC-signed HttpOnly admin session; constant-time verification
+- CSP and hardening headers; no third-party scripts or trackers
+- analytics events land in window.dataLayer with a whitelist that strips PII
+- Telegram owner notifications that report "not configured" honestly instead
+  of pretending to deliver
+
+Verification
+- 66 unit tests pass (phone, schedule/timezone, booking store incl. concurrent
+  double-booking and idempotency, validation, ICS, analytics privacy)
+- `npm run build` passes: 27 pages, 103 kB shared JS
+
+Owner actions still required (documented in README)
+- replace the 2GIS-watermarked photographs with watermark-free originals
+- confirm operational assumptions (slot length, per-slot capacity) and add a
+  price list, legal entity details, and Telegram credentials

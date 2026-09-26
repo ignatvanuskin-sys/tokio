@@ -1,0 +1,10 @@
+PASS  availability without ?service — HTTP 200, days=15
+PASS  availability?service=diagnostics — HTTP 200, days=15
+PASS  unknown service rejected — HTTP 422
+PASS  slots for a date — HTTP 200, 21 slots, 21 free
+PASS  POST /api/bookings creates — HTTP 201, number=1, service="Компьютерная диагностика", status=undefined
+PASS  double booking blocked — HTTP 409, reason=taken
+PASS  missing consent rejected — HTTP 422
+PASS  admin is gated — HTTP 307 -> /admin/login
+
+8/8 checks passed

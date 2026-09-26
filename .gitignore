@@ -1,52 +1,33 @@
-# dependencies
 node_modules/
-.pnp
-.pnp.js
-
-# builds
 .next/
 out/
 build/
 dist/
-*.tsbuildinfo
-next-env.d.ts
+coverage/
 
-# environment — never commit real secrets
+# local data store (заявки клиентов — персональные данные)
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# env
 .env
 .env.local
-.env.*.local
+.env*.local
 
-# demo / local storage (contains real customer data at runtime — never commit)
-.data/
-*.sqlite
-*.sqlite3
+# исходники изображений (в репозиторий идут только готовые файлы из public/images)
+media-output/
 
-# Research working files (large and/or re-fetchable).
-# The two files below are the ONLY .research artefacts kept in git, because they
-# document the provenance of every fact and photo used on the site:
-#   .research/results.json         — what was extracted from the 2GIS card
-#   .research/photos_manifest.json — source URL + byte size of each of the 17 photos
-.research/*
-!.research/results.json
-!.research/photos_manifest.json
-!.research/README.md
+# черновые скрипты проверок в корне проекта (конфиги лежат в .mjs и не затрагиваются)
+/*.js
+/*.cjs
+/*.jsx
 
-# test output
-coverage/
-.vitest/
-
-# OS / editor noise
+# misc
 .DS_Store
 Thumbs.db
-desktop.ini
-.idea/
-.vscode/*
-!.vscode/extensions.json
-
-# logs
 *.log
-npm-debug.log*
-yarn-error.log*
-
-.vercel
-.env*
+next-env.d.ts
+tsconfig.tsbuildinfo
