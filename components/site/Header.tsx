@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import SectionLink from '@/components/site/SectionLink';
 import { Menu, Phone, X } from 'lucide-react';
 import { BUSINESS } from '@/content/business';
 import { cn } from '@/lib/cn';
@@ -53,13 +54,13 @@ export default function Header() {
 
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Основная навигация">
           {NAV.map((item) => (
-            <Link
+            <SectionLink
               key={item.href}
               href={item.href}
               className="text-[14px] uppercase tracking-[0.08em] text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]"
             >
               {item.label}
-            </Link>
+            </SectionLink>
           ))}
         </nav>
 
@@ -88,14 +89,14 @@ export default function Header() {
       <div id="mobile-nav" hidden={!open} className="border-t border-[var(--color-line)] bg-[var(--color-surface)] lg:hidden">
         <nav className="container-x flex flex-col py-2" aria-label="Мобильная навигация">
           {NAV.map((item) => (
-            <Link
+            <SectionLink
               key={item.href}
               href={item.href}
-              onClick={() => setOpen(false)}
+              onNavigate={() => setOpen(false)}
               className="flex min-h-[52px] items-center border-b border-[var(--color-line)] text-[15px] uppercase tracking-[0.06em] last:border-b-0"
             >
               {item.label}
-            </Link>
+            </SectionLink>
           ))}
           <a
             href={`tel:${BUSINESS.phone.e164}`}

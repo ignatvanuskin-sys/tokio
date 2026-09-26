@@ -123,6 +123,10 @@ export const OWNER_INPUT = {
   warranty: null as string | null,
   /** Юридические реквизиты для футера. */
   legalEntity: null as string | null,
+    /** БИН / ИИН организации или ИП. */
+    bin: null as string | null,
+    /** Кто отвечает за обработку персональных данных и как с ним связаться. */
+    dataProtectionContact: null as string | null,
 } as const;
 
 export const SEO = {

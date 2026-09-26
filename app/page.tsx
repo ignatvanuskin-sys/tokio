@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Header from '@/components/site/Header';
+import HashScroller from '@/components/site/HashScroller';
 import Hero from '@/components/site/Hero';
 import BookingRoot from '@/components/booking/BookingRoot';
 import {
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <>
+      <HashScroller />
       <Header />
 
       <main>

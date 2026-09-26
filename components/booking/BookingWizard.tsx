@@ -288,10 +288,33 @@ export default function BookingWizard({ initialServiceSlug, embedded = false, on
           </p>
         ) : null}
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        {/* Что дальше и что делать, если мы не позвонили — снимает главную
+            неопределённость после отправки формы. */}
+        <div className="rounded-[var(--radius-control)] border border-[var(--color-line)] bg-[var(--color-surface-2)] p-4 text-[14px] leading-relaxed text-[var(--color-muted)]">
+          <p>
+            <strong className="text-[var(--color-chrome)]">Что дальше.</strong> Заявка уже у мастера. Он
+            позвонит на указанный номер, подтвердит время и уточнит детали. Стоимость работ назовём после
+            диагностики — до начала ремонта.
+          </p>
+          <p className="mt-2">
+            <strong className="text-[var(--color-chrome)]">Если мы не позвонили</strong> в течение рабочего дня,
+            позвоните сами или напишите в WhatsApp по номеру ниже — заявка уже в системе, номер
+            №{String(result.number).padStart(4, '0')} ускорит поиск.
+          </p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
           <Link href="/" className="btn btn-primary">
             Вернуться на сайт
           </Link>
+          <a
+            href={`https://wa.me/${BUSINESS.whatsapp[0].wa}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-secondary"
+          >
+            WhatsApp
+          </a>
           <a href={`tel:${BUSINESS.phone.e164}`} className="btn btn-secondary">
             {BUSINESS.phone.display}
           </a>

@@ -28,7 +28,7 @@ export default function Hero() {
           src={HERO_IMAGE.src}
           srcSet="/images/hero-mobile.webp 960w, /images/hero.webp 1920w"
           sizes="100vw"
-          alt=""
+          alt={HERO_IMAGE.alt}
           width={1920}
           height={1080}
           fetchPriority="high"

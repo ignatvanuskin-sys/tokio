@@ -7,14 +7,21 @@ import { Footer } from '@/components/site/Sections';
 export const metadata: Metadata = {
   title: 'Обработка персональных данных',
   description:
-    'Как автосервис «Токио» в Кокшетау обрабатывает данные, которые вы оставляете при онлайн-записи на ремонт.',
+    'Как автосервис «Токио» в Кокшетау обрабатывает данные, которые вы оставляете при онлайн-записи на ремонт: состав данных, основание, кому передаются, сроки хранения и как отозвать согласие.',
   alternates: { canonical: '/privacy' },
 };
 
 /**
  * Политика обработки данных.
- * TODO владельцу: перед публикацией проверьте текст у юриста и добавьте реквизиты компании —
- * в карточке 2ГИС их нет, поэтому здесь стоит нейтральная формулировка.
+ *
+ * Аудит отметил, что для формы с телефоном и передачей заявки в Telegram этого
+ * блока недостаточно: не хватало основания обработки, сроков и реквизитов
+ * оператора. Основание и сроки добавлены, реквизиты вынесены отдельным блоком
+ * с явными пометками — в карточке 2ГИС их нет, а выдумывать юридические данные
+ * нельзя.
+ *
+ * TODO владельцу: заполнить OWNER_INPUT.legalEntity, OWNER_INPUT.bin и
+ * OWNER_INPUT.dataProtectionContact и дать текст на проверку юристу в Казахстане.
  */
 export default function PrivacyPage() {
   return (
@@ -28,9 +35,8 @@ export default function PrivacyPage() {
 
         <h1 className="h2 mt-5">Обработка персональных данных</h1>
         <p className="mt-3 text-[15px] text-[var(--color-muted)]">
-          Оператор: автосервис «{BUSINESS.name}», {BUSINESS.address}, {BUSINESS.city}. Телефон:{' '}
-          {BUSINESS.phone.display}.
-          {OWNER_INPUT.legalEntity ? ` ${OWNER_INPUT.legalEntity}` : ''}
+          Оператор: {OWNER_INPUT.legalEntity ?? `автосервис «${BUSINESS.name}»`},{' '}
+          {BUSINESS.address}, {BUSINESS.city}. Телефон: {BUSINESS.phone.display}.
         </p>
 
         <div className="mt-8 grid gap-6 text-[16px] leading-relaxed text-[var(--color-chrome)]">
@@ -52,46 +58,111 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="h3 text-[19px]">3. Кому передаются данные</h2>
+            <h2 className="h3 text-[19px]">3. Основание обработки</h2>
+            <p className="mt-2 text-[var(--color-muted)]">
+              Основание — ваше согласие. Вы даёте его галочкой перед отправкой формы, и без этой галочки заявка не
+              отправляется. Согласие добровольное: вы можете не заполнять форму и вместо этого позвонить по телефону{' '}
+              {BUSINESS.phone.display}. Отозвать согласие можно в любой момент — см. раздел 6.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="h3 text-[19px]">4. Кому передаются данные</h2>
             <p className="mt-2 text-[var(--color-muted)]">
               Заявка видна сотрудникам сервиса. Если владелец подключил уведомления, копия карточки заявки
-              отправляется в защищённый чат сервиса Telegram (Telegram Messenger Inc.). Другим лицам данные не
-              передаются, кроме случаев, предусмотренных законодательством Республики Казахстан.
+              отправляется в защищённый чат сервиса Telegram (Telegram Messenger Inc.) — это единственный внешний
+              получатель данных. Другим лицам данные не передаются, кроме случаев, предусмотренных законодательством
+              Республики Казахстан.
             </p>
           </section>
 
           <section>
-            <h2 className="h3 text-[19px]">4. Сколько храним</h2>
+            <h2 className="h3 text-[19px]">5. Сколько храним</h2>
             <p className="mt-2 text-[var(--color-muted)]">
               Столько, сколько нужно для обслуживания и учёта. Данные о визитах старше двух лет могут быть обезличены.
+              Если вы отозвали согласие или попросили удалить данные, мы удаляем их, а не обезличиваем, — в течение
+              30 дней после обращения.
             </p>
           </section>
 
           <section>
-            <h2 className="h3 text-[19px]">5. Ваши права</h2>
+            <h2 className="h3 text-[19px]">6. Ваши права</h2>
             <p className="mt-2 text-[var(--color-muted)]">
               Вы можете отозвать согласие, запросить сведения об обработке, исправление или удаление своих данных.
-              Для этого позвоните по номеру {BUSINESS.phone.display} или напишите в WhatsApp. Согласие даётся
-              галочкой при отправке формы и может быть отозвано в любой момент.
+              Для этого позвоните по номеру {BUSINESS.phone.display} или напишите в WhatsApp — этого достаточно, форма
+              и регистрация не нужны. Мы не требуем объяснять причину отказа.
             </p>
           </section>
 
           <section>
-            <h2 className="h3 text-[19px]">6. Файлы cookie</h2>
+            <h2 className="h3 text-[19px]">7. Файлы cookie</h2>
             <p className="mt-2 text-[var(--color-muted)]">
               Сайт не использует рекламные или аналитические cookie. Технические cookie нужны только панели
               сотрудников, чтобы держать сессию входа, и недоступны посетителям сайта.
             </p>
           </section>
+
+          <section>
+            <h2 className="h3 text-[19px]">8. Реквизиты и ответственный</h2>
+            <dl className="mt-3 grid gap-2 text-[15px]">
+              <div className="flex flex-wrap justify-between gap-2 border-b border-[var(--color-line)] pb-2">
+                <dt className="text-[var(--color-muted)]">Оператор</dt>
+                <dd className="text-right">{OWNER_INPUT.legalEntity ?? <OwnerTodo label="юрлицо или ИП" />}</dd>
+              </div>
+              <div className="flex flex-wrap justify-between gap-2 border-b border-[var(--color-line)] pb-2">
+                <dt className="text-[var(--color-muted)]">БИН / ИИН</dt>
+                <dd className="text-right">{OWNER_INPUT.bin ?? <OwnerTodo label="БИН" />}</dd>
+              </div>
+              <div className="flex flex-wrap justify-between gap-2 border-b border-[var(--color-line)] pb-2">
+                <dt className="text-[var(--color-muted)]">Адрес</dt>
+                <dd className="text-right">
+                  {BUSINESS.address}, {BUSINESS.city}
+                </dd>
+              </div>
+              <div className="flex flex-wrap justify-between gap-2">
+                <dt className="text-[var(--color-muted)]">Ответственный за обработку</dt>
+                <dd className="text-right">
+                  {OWNER_INPUT.dataProtectionContact ?? <OwnerTodo label="ФИО и контакт" />}
+                </dd>
+              </div>
+            </dl>
+          </section>
         </div>
 
-        <p className="card mt-8 p-5 text-[14px] text-[var(--color-muted)]">
-          Перед публикацией сайта текст политики стоит проверить у юриста и дополнить реквизитами компании: в
-          публичной карточке 2ГИС юридических данных нет, поэтому они здесь не указаны.
+        <div className="card mt-8 p-5 text-[14px] leading-relaxed text-[var(--color-muted)]">
+          <p className="font-semibold text-[var(--color-chrome)]">
+            Что осталось сделать владельцу перед запуском
+          </p>
+          <ul className="mt-2 grid gap-1.5">
+            <li>
+              · Заполнить в <code className="font-mono">content/business.ts</code> поля{' '}
+              <code className="font-mono">OWNER_INPUT.legalEntity</code>, <code className="font-mono">.bin</code> и{' '}
+              <code className="font-mono">.dataProtectionContact</code> — тогда пометки ниже исчезнут сами.
+            </li>
+            <li>· Показать этот текст юристу в Казахстане и подтвердить формулировки.</li>
+            <li>
+              · Если уведомления в Telegram отключены, раздел 4 можно сократить: внешний получатель данных тогда
+              не используется.
+            </li>
+          </ul>
+        </div>
+
+        <p className="mt-6 text-[13px] text-[var(--color-muted)]">
+          Политика описывает только запись через этот сайт. Обработку данных в карточке 2ГИС регулируют правила самой
+          платформы.
         </p>
       </main>
 
       <Footer />
     </>
+  );
+}
+
+/** Пометка о незаполненном юридическом реквизите — видна только владельцу сайта. */
+function OwnerTodo({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-[6px] border border-[var(--color-warning)]/50 bg-[var(--color-warning)]/10 px-2 py-0.5 text-[13px] text-[var(--color-warning)]">
+      не указано: {label}
+    </span>
   );
 }

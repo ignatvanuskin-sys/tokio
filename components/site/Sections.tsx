@@ -100,6 +100,51 @@ export function ServicesSection() {
           ))}
         </div>
 
+        {/* Прайса в карточке 2ГИС нет, поэтому вместо выдуманных цифр —
+            объяснение, из чего складывается цена и когда её называют. */}
+        <div className="mt-8 grid gap-5 rounded-[14px] border border-[var(--color-line)] bg-[var(--color-surface)] p-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <h3 className="font-[family-name:var(--font-display)] text-[15px] uppercase tracking-[0.06em] text-[var(--color-accent)]">
+              Что влияет на цену
+            </h3>
+            <p className="mt-2 text-[14px] leading-relaxed text-[var(--color-muted)]">
+              Модель и год, состояние узла, нужны ли запчасти и насколько глубокая разборка.
+              Одинаковая на вид неисправность на разных машинах стоит по-разному.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-[family-name:var(--font-display)] text-[15px] uppercase tracking-[0.06em] text-[var(--color-accent)]">
+              Когда называют сумму
+            </h3>
+            <p className="mt-2 text-[14px] leading-relaxed text-[var(--color-muted)]">
+              После диагностики и до начала работ. Ремонт начинаем только после того, как вы
+              согласовали стоимость.
+            </p>
+          </div>
+          <div className="sm:col-span-2 lg:col-span-1">
+            <h3 className="font-[family-name:var(--font-display)] text-[15px] uppercase tracking-[0.06em] text-[var(--color-accent)]">
+              Как узнать заранее
+            </h3>
+            <p className="mt-2 text-[14px] leading-relaxed text-[var(--color-muted)]">
+              Позвоните или напишите в WhatsApp: опишите симптом и модель — сориентируем по
+              порядку сумм и скажем, что обычно входит в такую работу.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a href={`tel:${BUSINESS.phone.e164}`} className="btn btn-secondary !min-h-[40px] !px-4 !text-[13px]">
+                Позвонить
+              </a>
+              <a
+                href={`https://wa.me/${BUSINESS.whatsapp[0].wa}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-secondary !min-h-[40px] !px-4 !text-[13px]"
+              >
+                WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+
         <p className="mt-6 max-w-[80ch] text-[14px] text-[var(--color-muted)]">
           Не нашли нужную работу? Опишите проблему в заявке — мастер посмотрит автомобиль и скажет, что делать.
         </p>
@@ -110,20 +155,38 @@ export function ServicesSection() {
 
 /* ---------------------------- как это работает --------------------------- */
 
+/** Шаги совпадают с шагами формы записи один в один — иначе блок обещает
+ *  не то, что видит человек в самом мастере. */
 const STEPS = [
-  { title: 'Выбираете услугу', text: 'Ходовая, двигатель, развал-схождение или «не знаю, что сломалось».' },
-  { title: 'Выбираете время', text: `Свободные слоты видны сразу — работаем ${BUSINESS.hours.text.toLowerCase()}.` },
-  { title: 'Оставляете контакты', text: 'Имя и телефон. Больше ничего заполнять не нужно.' },
-  { title: 'Получаете подтверждение', text: 'Мы связываемся и подтверждаем время приезда.' },
+  {
+    title: 'Выбираете услугу',
+    text: 'Диагностика, ходовая, двигатель, развал-схождение или «не знаю, что сломалось».',
+  },
+  {
+    title: 'Указываете автомобиль',
+    text: 'Марка и модель; год и описание проблемы — по желанию, можно пропустить.',
+  },
+  {
+    title: 'Выбираете дату',
+    text: `Доступные дни видно сразу — работаем ${BUSINESS.hours.text.toLowerCase()}.`,
+  },
+  {
+    title: 'Выбираете время',
+    text: 'Свободные слоты показаны из реального расписания, занятые выбрать нельзя.',
+  },
+  {
+    title: 'Оставляете контакты',
+    text: 'Имя и телефон. Мастер звонит и подтверждает время приезда.',
+  },
 ];
 
 export function HowItWorksSection() {
   return (
     <section id="how" aria-labelledby="how-title" className="scroll-mt-24 border-y border-[var(--color-line)] bg-[var(--color-surface)] py-16 md:py-24">
       <div className="container-x">
-        <SectionHeading eyebrow="Как записаться" title="Четыре шага и одна минута" id="how-title" />
+        <SectionHeading eyebrow="Как записаться" title="Пять шагов и одна минута" id="how-title" />
 
-        <ol className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <ol className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
           {STEPS.map((step, index) => (
             <li key={step.title} className="h-full">
               <Reveal delay={index * 70} className="h-full border-t border-[var(--color-line-strong)] pt-5">
